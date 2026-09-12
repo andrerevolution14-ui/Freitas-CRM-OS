@@ -1,0 +1,150 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   @default("ADMIN")
+  color     String   @default("#4f7ef8")
+  image     String?  // Path to profile photo
+  createdAt DateTime @default(now())
+
+  // Audit relations
+  notes    Note[]
+  leads    Lead[]
+  projects Project[]
+}
+
+model Lead {
+  id             String   @id @default(uuid())
+  clientName     String
+  phone          String
+  email          String?
+  address        String
+  source         String   @default("Meta Ads")
+  status         String   @default("NOVA_LEAD")
+  estimatedValue Float?
+  notes          Note[]
+  project        Project?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Audit
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+}
+
+model Project {
+  id            String    @id @default(uuid())
+  leadId        String?   @unique
+  lead          Lead?     @relation(fields: [leadId], references: [id])
+  title         String
+  clientName    String
+  clientNIF     String?
+  address       String
+  contractValue Float
+  startDate     DateTime?
+  endDate       DateTime?
+  status        String    @default("EM_PLANEAMENTO")
+
+  expenses       Expense[]
+  clientTranches ClientTranche[]
+  subPayments    SubcontractorPayment[]
+  documents      Document[]
+  notes          Note[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Audit
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+}
+
+model Expense {
+  id          String   @id @default(uuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  description String
+  amount      Float
+  category    String
+  date        DateTime @default(now())
+  receiptUrl  String?
+}
+
+model ClientTranche {
+  id          String    @id @default(uuid())
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  description String
+  percentage  Float
+  amount      Float
+  dueDate     DateTime
+  paidDate    DateTime?
+  status      String    @default("PENDENTE")
+}
+
+model Subcontractor {
+  id          String                 @id @default(uuid())
+  name        String
+  companyName String?
+  phone       String
+  specialty   String
+  rating      Int                    @default(5)
+  dailyRate   Float?
+  notes       String?
+  isAvailable Boolean                @default(true)
+  payments    SubcontractorPayment[]
+  createdAt   DateTime               @default(now())
+}
+
+model SubcontractorPayment {
+  id               String        @id @default(uuid())
+  projectId        String
+  project          Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  subcontractorId  String
+  subcontractor    Subcontractor @relation(fields: [subcontractorId], references: [id])
+  phaseDescription String
+  amount           Float
+  dueDate          DateTime
+  paidDate         DateTime?
+  status           String        @default("PENDENTE")
+}
+
+model Document {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title     String
+  fileUrl   String
+  fileType  String
+  createdAt DateTime @default(now())
+}
+
+model Note {
+  id        String    @id @default(uuid())
+  title     String?
+  content   String
+  eventDate DateTime? // For calendar pinned events
+  leadId    String?
+  lead      Lead?     @relation(fields: [leadId], references: [id])
+  projectId String?
+  project   Project?  @relation(fields: [projectId], references: [id])
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  // Audit
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+}

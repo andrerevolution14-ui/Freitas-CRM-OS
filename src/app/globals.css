@@ -1,0 +1,352 @@
+@import "tailwindcss";
+
+/* ════════════════════════════════════════════════════════════
+   FREITAS OS — Banking-Grade Design System
+   Inspired by: Revolut, N26, Monzo
+   ════════════════════════════════════════════════════════════ */
+
+:root {
+  --font-inter: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+
+  /* Core colors */
+  --bg-base:       #07090e;
+  --bg-surface:    #0d0f16;
+  --bg-elevated:   #12151e;
+  --bg-overlay:    #1a1d28;
+  --border-subtle: rgba(255,255,255,0.06);
+  --border-muted:  rgba(255,255,255,0.09);
+  --border-accent: rgba(255,255,255,0.14);
+
+  /* Brand */
+  --blue:          #3b82f6;
+  --blue-dim:      rgba(59,130,246,0.12);
+  --blue-border:   rgba(59,130,246,0.22);
+  --indigo:        #6366f1;
+  --purple:        #8b5cf6;
+  --purple-dim:    rgba(139,92,246,0.12);
+  --amber:         #f59e0b;
+  --amber-dim:     rgba(245,158,11,0.12);
+  --emerald:       #10b981;
+  --emerald-dim:   rgba(16,185,129,0.12);
+  --red:           #ef4444;
+  --red-dim:       rgba(239,68,68,0.1);
+
+  /* Text */
+  --text-primary:  #f1f5f9;
+  --text-secondary:#94a3b8;
+  --text-muted:    #475569;
+  --text-micro:    #334155;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html, body {
+  overflow-x: hidden !important;
+  max-width: 100vw !important;
+  width: 100% !important;
+  touch-action: manipulation;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-inter);
+  min-height: 100vh;
+  letter-spacing: -0.015em;
+  position: relative;
+}
+
+/* ────────────────────────────────────────────────────────
+   DARK-MODE SELECT / OPTION — Bank-grade
+   ──────────────────────────────────────────────────────── */
+select,
+select option {
+  background-color: #121520 !important;
+  color: #f1f5f9 !important;
+}
+
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 30px !important;
+}
+
+select:focus {
+  outline: none;
+  border-color: rgba(59,130,246,0.5) !important;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+}
+
+/* ────────────────────────────────────────────────────────
+   GLASS CARD — Banking Solid Opaque Surface
+   High contrast, clear text, perfectly legible
+   ──────────────────────────────────────────────────────── */
+.glass-card {
+  background: #0d101a;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.05) inset,
+    0 4px 20px -2px rgba(0,0,0,0.5);
+}
+
+.glass-card-hover {
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.glass-card-hover:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow:
+    0 1px 0 0 rgba(255,255,255,0.07) inset,
+    0 8px 28px -4px rgba(0,0,0,0.6);
+}
+
+/* ────────────────────────────────────────────────────────
+   STAT CARD — KPI blocks (clean, flat like Revolut)
+   ──────────────────────────────────────────────────────── */
+.stat-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.stat-card:hover {
+  border-color: var(--border-muted);
+  box-shadow: 0 4px 20px -4px rgba(0,0,0,0.35);
+}
+
+/* ────────────────────────────────────────────────────────
+   iOS Segmented Control
+   ──────────────────────────────────────────────────────── */
+.ios-segmented {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  padding: 3px;
+  display: inline-flex;
+  gap: 2px;
+}
+
+.ios-segment-btn {
+  padding: 5px 13px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: all 0.18s ease;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+.ios-segment-btn:hover { color: var(--text-primary); }
+.ios-segment-btn-active {
+  background: rgba(255,255,255,0.11);
+  color: var(--text-primary) !important;
+  font-weight: 600;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.12);
+}
+
+/* ────────────────────────────────────────────────────────
+   BADGE PILLS — Bank style (rounded rect, not pill)
+   ──────────────────────────────────────────────────────── */
+.badge-green {
+  background: var(--emerald-dim); color: #34d399;
+  border: 1px solid rgba(52,211,153,0.2); border-radius: 5px;
+  padding: 2px 8px; display: inline-flex; align-items: center;
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.02em;
+}
+.badge-yellow {
+  background: var(--amber-dim); color: #fbbf24;
+  border: 1px solid rgba(251,191,36,0.2); border-radius: 5px;
+  padding: 2px 8px; display: inline-flex; align-items: center;
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.02em;
+}
+.badge-red {
+  background: var(--red-dim); color: #f87171;
+  border: 1px solid rgba(239,68,68,0.2); border-radius: 5px;
+  padding: 2px 8px; display: inline-flex; align-items: center;
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.02em;
+}
+.badge-blue {
+  background: var(--blue-dim); color: #60a5fa;
+  border: 1px solid var(--blue-border); border-radius: 5px;
+  padding: 2px 8px; display: inline-flex; align-items: center;
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.02em;
+}
+.badge-purple {
+  background: var(--purple-dim); color: #a78bfa;
+  border: 1px solid rgba(167,139,250,0.2); border-radius: 5px;
+  padding: 2px 8px; display: inline-flex; align-items: center;
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.02em;
+}
+.badge-gray {
+  background: rgba(148,163,184,0.08); color: var(--text-secondary);
+  border: 1px solid var(--border-subtle); border-radius: 5px;
+  padding: 2px 8px; display: inline-flex; align-items: center;
+  font-size: 10.5px; font-weight: 600;
+}
+
+/* ────────────────────────────────────────────────────────
+   INTERACTIVE PRESS EFFECT
+   ──────────────────────────────────────────────────────── */
+.ios-interactive {
+  transition: transform 0.12s cubic-bezier(0.23, 1, 0.32, 1),
+              opacity 0.12s ease;
+}
+.ios-interactive:active { transform: scale(0.97); opacity: 0.88; }
+
+/* ────────────────────────────────────────────────────────
+   BANK INPUT STYLE
+   ──────────────────────────────────────────────────────── */
+.bank-input {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-muted);
+  color: var(--text-primary);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13.5px;
+  font-family: var(--font-inter);
+  width: 100%;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.bank-input::placeholder { color: var(--text-muted); }
+.bank-input:focus {
+  outline: none;
+  border-color: rgba(59,130,246,0.5);
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+}
+
+/* ────────────────────────────────────────────────────────
+   SIDEBAR ACTIVE ITEM
+   ──────────────────────────────────────────────────────── */
+.sidebar-item-active {
+  background: rgba(59,130,246,0.1);
+  border: 1px solid rgba(59,130,246,0.18);
+}
+
+/* ────────────────────────────────────────────────────────
+   AVATAR WITH PHOTO
+   ──────────────────────────────────────────────────────── */
+.author-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 9px;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 1.5px solid rgba(255,255,255,0.1);
+}
+.author-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+
+/* ────────────────────────────────────────────────────────
+   SCROLLBAR
+   ──────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
+
+/* ────────────────────────────────────────────────────────
+   ANIMATIONS
+   ──────────────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes pulse-dot {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.6; transform: scale(0.85); }
+}
+.animate-fade-in { animation: fadeUp 0.3s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
+.animate-slide-in { animation: slideIn 0.25s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
+.pulse-dot { animation: pulse-dot 2s ease infinite; }
+
+/* ────────────────────────────────────────────────────────
+   KANBAN drag & drop
+   ──────────────────────────────────────────────────────── */
+.kanban-drag-source {
+  opacity: 0.3 !important;
+  transform: scale(0.96);
+  border: 1px dashed rgba(99,102,241,0.5) !important;
+}
+.kanban-drop-target {
+  background: rgba(99,102,241,0.08) !important;
+  border: 1.5px dashed #6366f1 !important;
+  box-shadow: 0 0 20px rgba(99,102,241,0.15), inset 0 0 12px rgba(99,102,241,0.06);
+  transform: scale(1.01);
+  transition: all 0.18s ease;
+}
+
+/* ────────────────────────────────────────────────────────
+   CALENDAR
+   ──────────────────────────────────────────────────────── */
+.cal-day {
+  min-height: 72px;
+  border-radius: 8px;
+  transition: background 0.12s ease;
+  border: 1px solid transparent;
+}
+@media (max-width: 640px) { .cal-day { min-height: 52px; } }
+.cal-day:hover { background: rgba(255,255,255,0.025); border-color: var(--border-subtle); }
+.cal-event {
+  font-size: 9.5px; font-weight: 600;
+  padding: 1.5px 5px; border-radius: 4px;
+  overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+/* ────────────────────────────────────────────────────────
+   MODAL OVERLAY & BOX — Bank-grade Solid Opaque
+   ──────────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(0,0,0,0.82) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+  animation: fadeUp 0.12s ease-out;
+}
+.modal-box,
+.modal-card {
+  background: #121624 !important;
+  border: 1px solid rgba(255,255,255,0.15) !important;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 460px;
+  box-shadow: 0 24px 64px -8px rgba(0,0,0,0.9) !important;
+  animation: fadeUp 0.15s ease-out;
+}
+
+/* ────────────────────────────────────────────────────────
+   MOBILE — Compact overrides
+   ──────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  .kpi-value { font-size: 1.35rem !important; }
+  .kpi-label { font-size: 10px !important; }
+  .section-title { font-size: 0.9rem !important; }
+  .compact-mobile { padding: 10px !important; }
+}

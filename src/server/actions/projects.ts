@@ -1,0 +1,229 @@
+'use server'
+
+import { prisma } from '@/lib/prisma'
+import { revalidatePath } from 'next/cache'
+import type { ProjectStatus, ExpenseCategory, PaymentStatus } from '@prisma/client'
+
+export async function getProjects() {
+  return prisma.project.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: {
+      expenses: true,
+      clientTranches: true,
+      subPayments: { include: { subcontractor: true } },
+      _count: { select: { documents: true, notes: true } },
+    },
+  })
+}
+
+export async function getProject(id: string) {
+  return prisma.project.findUnique({
+    where: { id },
+    include: {
+      expenses: { orderBy: { date: 'desc' } },
+      clientTranches: { orderBy: { dueDate: 'asc' } },
+      subPayments: { include: { subcontractor: true }, orderBy: { dueDate: 'asc' } },
+      documents: { orderBy: { createdAt: 'desc' } },
+      notes: { orderBy: { createdAt: 'desc' } },
+      lead: true,
+    },
+  })
+}
+
+export async function createProject(data: {
+  title: string
+  clientName: string
+  clientNIF?: string
+  address: string
+  contractValue: number
+  startDate?: Date
+  endDate?: Date
+  status?: ProjectStatus
+}) {
+  const project = await prisma.project.create({ data })
+  revalidatePath('/obras')
+  return project
+}
+
+export async function updateProject(id: string, data: Partial<{
+  title: string
+  clientName: string
+  clientNIF: string
+  address: string
+  contractValue: number
+  startDate: Date
+  endDate: Date
+  status: ProjectStatus
+}>) {
+  const project = await prisma.project.update({ where: { id }, data })
+  revalidatePath('/obras')
+  revalidatePath(`/obras/${id}`)
+  return project
+}
+
+export async function deleteProject(id: string) {
+  await prisma.project.delete({ where: { id } })
+  revalidatePath('/obras')
+}
+
+// Expenses
+export async function createExpense(data: {
+  projectId: string
+  description: string
+  amount: number
+  category: ExpenseCategory
+  date?: Date
+  receiptUrl?: string
+}) {
+  const expense = await prisma.expense.create({ data })
+  revalidatePath(`/obras/${data.projectId}`)
+  return expense
+}
+
+export async function deleteExpense(id: string, projectId: string) {
+  await prisma.expense.delete({ where: { id } })
+  revalidatePath(`/obras/${projectId}`)
+}
+
+// Tranches
+export async function createClientTranche(data: {
+  projectId: string
+  description: string
+  percentage: number
+  amount: number
+  dueDate: Date
+}) {
+  const tranche = await prisma.clientTranche.create({ data })
+  revalidatePath(`/obras/${data.projectId}`)
+  return tranche
+}
+
+export async function updateTrancheStatus(id: string, status: PaymentStatus, projectId: string, paidDate?: Date) {
+  const tranche = await prisma.clientTranche.update({
+    where: { id },
+    data: { status, paidDate: status === 'PAGO' ? (paidDate || new Date()) : null },
+  })
+  revalidatePath(`/obras/${projectId}`)
+  return tranche
+}
+
+export async function deleteClientTranche(id: string, projectId: string) {
+  await prisma.clientTranche.delete({ where: { id } })
+  revalidatePath(`/obras/${projectId}`)
+}
+
+// Documents
+export async function createDocument(data: {
+  projectId: string
+  title: string
+  fileUrl: string
+  fileType: string
+}) {
+  const doc = await prisma.document.create({ data })
+  revalidatePath(`/obras/${data.projectId}`)
+  return doc
+}
+
+export async function deleteDocument(id: string, projectId: string) {
+  await prisma.document.delete({ where: { id } })
+  revalidatePath(`/obras/${projectId}`)
+}
+
+// Dashboard stats
+export async function getDashboardStats() {
+  const [projects, expenses, clientTranches, subPayments] = await Promise.all([
+    prisma.project.findMany({
+      include: {
+        expenses: true,
+        clientTranches: true,
+        subPayments: { include: { subcontractor: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.expense.findMany({ orderBy: { date: 'desc' } }),
+    prisma.clientTranche.findMany({ orderBy: { dueDate: 'asc' } }),
+    prisma.subcontractorPayment.findMany({ include: { subcontractor: true }, orderBy: { dueDate: 'asc' } }),
+  ])
+
+  const totalRevenue = projects.reduce((s, p) => s + p.contractValue, 0)
+  const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0)
+  const totalProfit = totalRevenue - totalExpenses
+  const avgMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0
+
+  const pendingReceivables = clientTranches
+    .filter((t) => t.status !== 'PAGO')
+    .reduce((s, t) => s + t.amount, 0)
+
+  const pendingPayables = subPayments
+    .filter((p) => p.status !== 'PAGO')
+    .reduce((s, p) => s + p.amount, 0)
+
+  const overdueReceivables = clientTranches.filter(
+    (t) => t.status === 'ATRASADO' || (t.status === 'PENDENTE' && new Date(t.dueDate) < new Date())
+  )
+  const overduePayables = subPayments.filter(
+    (p) => p.status === 'ATRASADO' || (p.status === 'PENDENTE' && new Date(p.dueDate) < new Date())
+  )
+
+  return {
+    totalRevenue,
+    totalExpenses,
+    totalProfit,
+    avgMargin,
+    pendingReceivables,
+    pendingPayables,
+    overdueCount: overdueReceivables.length + overduePayables.length,
+    projectCount: projects.length,
+    activeProjectCount: projects.filter((p) => p.status === 'EM_EXECUCAO').length,
+    projects: projects.map((p) => ({
+      id: p.id,
+      title: p.title,
+      clientName: p.clientName,
+      address: p.address,
+      contractValue: p.contractValue,
+      totalExpenses: p.expenses.reduce((s, e) => s + e.amount, 0),
+      status: p.status,
+      startDate: p.startDate,
+      endDate: p.endDate,
+      createdAt: p.createdAt,
+      expenses: p.expenses.map((e) => ({
+        id: e.id,
+        amount: e.amount,
+        date: e.date,
+        category: e.category,
+      })),
+      clientTranches: p.clientTranches.map((t) => ({
+        id: t.id,
+        amount: t.amount,
+        status: t.status,
+        dueDate: t.dueDate,
+        paidDate: t.paidDate,
+      })),
+    })),
+    rawExpenses: expenses.map((e) => ({
+      id: e.id,
+      projectId: e.projectId,
+      amount: e.amount,
+      date: e.date,
+      category: e.category,
+      description: e.description,
+    })),
+    rawTranches: clientTranches.map((t) => ({
+      id: t.id,
+      projectId: t.projectId,
+      amount: t.amount,
+      status: t.status,
+      dueDate: t.dueDate,
+      paidDate: t.paidDate,
+    })),
+    rawSubPayments: subPayments.map((p) => ({
+      id: p.id,
+      projectId: p.projectId,
+      amount: p.amount,
+      status: p.status,
+      dueDate: p.dueDate,
+      paidDate: p.paidDate,
+      subcontractorName: p.subcontractor?.name || 'Subempreiteiro',
+    })),
+  }
+}
