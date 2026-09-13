@@ -158,6 +158,18 @@ export async function getDashboardStats() {
     .filter((p) => p.status !== 'PAGO')
     .reduce((s, p) => s + p.amount, 0)
 
+  const paidReceivables = clientTranches
+    .filter((t) => t.status === 'PAGO' || t.paidDate != null)
+    .reduce((s, t) => s + t.amount, 0)
+
+  const paidExpenses = expenses.reduce((s, e) => s + e.amount, 0)
+  const paidSubcontractors = subPayments
+    .filter((p) => p.status === 'PAGO' || p.paidDate != null)
+    .reduce((s, p) => s + p.amount, 0)
+
+  const totalCashOut = paidExpenses + paidSubcontractors
+  const bankBalance = paidReceivables - totalCashOut
+
   const overdueReceivables = clientTranches.filter(
     (t) => t.status === 'ATRASADO' || (t.status === 'PENDENTE' && new Date(t.dueDate) < new Date())
   )
@@ -172,6 +184,11 @@ export async function getDashboardStats() {
     avgMargin,
     pendingReceivables,
     pendingPayables,
+    paidReceivables,
+    paidExpenses,
+    paidSubcontractors,
+    totalCashOut,
+    bankBalance,
     overdueCount: overdueReceivables.length + overduePayables.length,
     projectCount: projects.length,
     activeProjectCount: projects.filter((p) => p.status === 'EM_EXECUCAO').length,

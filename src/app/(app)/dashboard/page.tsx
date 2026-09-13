@@ -3,6 +3,8 @@ import { getLeads } from '@/server/actions/leads'
 import { getNotes } from '@/server/actions/notes'
 import { DashboardClient } from './dashboard-client'
 
+export const revalidate = 10
+
 export default async function DashboardPage() {
   const [stats, leads, notes] = await Promise.all([
     getDashboardStats(),

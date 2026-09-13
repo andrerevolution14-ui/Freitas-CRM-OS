@@ -21,6 +21,8 @@ import {
   Trash2,
   Clock,
   Sparkles,
+  Landmark,
+  CheckCircle2,
 } from 'lucide-react'
 import { formatCurrency, formatDate, getMarginColor, getMarginBg, cn, getStatusLabel } from '@/lib/utils'
 import { createNote, deleteNote } from '@/server/actions/notes'
@@ -78,6 +80,11 @@ interface Stats {
   avgMargin: number
   pendingReceivables: number
   pendingPayables: number
+  paidReceivables?: number
+  paidExpenses?: number
+  paidSubcontractors?: number
+  totalCashOut?: number
+  bankBalance?: number
   overdueCount: number
   projectCount: number
   activeProjectCount: number
@@ -162,6 +169,7 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
   // Filtered stats based on active time range
   const filteredData = useMemo(() => {
     if (!cutoffDate) {
+      const bankBalance = stats.bankBalance ?? ((stats.paidReceivables ?? 0) - (stats.totalCashOut ?? 0))
       return {
         revenue: stats.totalRevenue,
         expenses: stats.totalExpenses,
@@ -171,6 +179,11 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
         totalProjects: stats.projectCount,
         pendingReceivables: stats.pendingReceivables,
         pendingPayables: stats.pendingPayables,
+        paidReceivables: stats.paidReceivables ?? 0,
+        paidExpenses: stats.paidExpenses ?? 0,
+        paidSubcontractors: stats.paidSubcontractors ?? 0,
+        totalCashOut: stats.totalCashOut ?? 0,
+        bankBalance: bankBalance,
         overdueCount: stats.overdueCount,
         projects: stats.projects,
         leads: leads,
@@ -194,15 +207,24 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
 
     // Tranches in range
     const fTranches = (stats.rawTranches || []).filter((t) => new Date(t.dueDate) >= cutoffDate)
+    const paidReceivables = fTranches
+      .filter((t) => t.status === 'PAGO' || t.paidDate != null)
+      .reduce((sum, t) => sum + t.amount, 0)
     const pendingReceivables = fTranches
       .filter((t) => t.status !== 'PAGO')
       .reduce((sum, t) => sum + t.amount, 0)
 
     // Subcontractor payments in range
     const fSubPayments = (stats.rawSubPayments || []).filter((p) => new Date(p.dueDate) >= cutoffDate)
+    const paidSubcontractors = fSubPayments
+      .filter((p) => p.status === 'PAGO' || p.paidDate != null)
+      .reduce((sum, p) => sum + p.amount, 0)
     const pendingPayables = fSubPayments
       .filter((p) => p.status !== 'PAGO')
       .reduce((sum, p) => sum + p.amount, 0)
+
+    const totalCashOut = totalExpenses + paidSubcontractors
+    const bankBalance = paidReceivables - totalCashOut
 
     const now = new Date()
     const overdueCount =
@@ -220,6 +242,11 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
       totalProjects: fProjects.length,
       pendingReceivables,
       pendingPayables,
+      paidReceivables,
+      paidExpenses: totalExpenses,
+      paidSubcontractors,
+      totalCashOut,
+      bankBalance,
       overdueCount,
       projects: fProjects.length > 0 ? fProjects : stats.projects.slice(0, 5),
       leads: fLeads,
@@ -377,6 +404,113 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
           </div>
         </Link>
       )}
+
+      {/* ── HERO METRIC: CASH FLOW & SALDO BANCÁRIO REAL ── */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#0b1220] via-[#0d1424] to-[#0a0f1d] border border-emerald-500/25 p-4 sm:p-5 shadow-[0_12px_40px_-10px_rgba(16,185,129,0.15)]">
+        {/* Ambient glow */}
+        <div className="absolute -top-16 -right-16 w-64 h-64 bg-emerald-500/10 blur-3xl rounded-full pointer-events-none" />
+        <div className="absolute -bottom-16 -left-16 w-64 h-64 bg-blue-500/10 blur-3xl rounded-full pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+              <div className="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                <Landmark className="w-4 h-4" />
+              </div>
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+                Cash Flow Real · Saldo Esperado em Banco
+              </span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-semibold text-emerald-300">
+                <CheckCircle2 className="w-3 h-3" /> Conciliação Bancária
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-baseline gap-2.5 mt-1">
+              <span
+                className={cn(
+                  'text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight',
+                  filteredData.bankBalance >= 0 ? 'text-white' : 'text-red-400'
+                )}
+              >
+                {formatCurrency(filteredData.bankBalance)}
+              </span>
+              <span className="text-xs sm:text-sm text-slate-400 font-medium">
+                saldo líquido apurado em tesouraria
+              </span>
+            </div>
+
+            <p className="text-xs text-slate-400 mt-1.5 max-w-2xl leading-relaxed">
+              Valor exato que deve constar no banco da empresa:{' '}
+              <strong className="text-slate-200">
+                Tranches recebidas dos clientes (+{formatCurrency(filteredData.paidReceivables)})
+              </strong>{' '}
+              deduzidas de{' '}
+              <strong className="text-slate-200">
+                todas as saídas já pagas (-{formatCurrency(filteredData.totalCashOut)})
+              </strong>
+              .
+            </p>
+          </div>
+
+          <Link
+            href="/obras"
+            prefetch={true}
+            className="flex-shrink-0 self-start md:self-center inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs sm:text-sm font-semibold transition-all hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <span>Ver Tesouraria & Tranches</span>
+            <ChevronRight className="w-4 h-4" />
+          </Link>
+        </div>
+
+        {/* Breakdown ribbon */}
+        <div className="relative z-10 grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-2.5 mt-4 pt-3.5 border-t border-white/[0.08]">
+          <div className="bg-black/30 rounded-xl p-2.5 border border-white/[0.04]">
+            <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400">
+              <ArrowDownRight className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Entradas Reais (Clientes)</span>
+            </div>
+            <p className="text-sm sm:text-base font-bold text-emerald-400 mt-0.5">
+              +{formatCurrency(filteredData.paidReceivables)}
+            </p>
+            <p className="text-[10px] text-slate-500">Tranches recebidas no banco</p>
+          </div>
+
+          <div className="bg-black/30 rounded-xl p-2.5 border border-white/[0.04]">
+            <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400">
+              <ArrowUpRight className="w-3.5 h-3.5 text-amber-400" />
+              <span>Saídas Reais (Custos Pagos)</span>
+            </div>
+            <p className="text-sm sm:text-base font-bold text-amber-400 mt-0.5">
+              -{formatCurrency(filteredData.totalCashOut)}
+            </p>
+            <p className="text-[10px] text-slate-500">
+              {formatCurrency(filteredData.paidExpenses)} mat. + {formatCurrency(filteredData.paidSubcontractors)} subs
+            </p>
+          </div>
+
+          <div className="bg-black/30 rounded-xl p-2.5 border border-white/[0.04]">
+            <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400">
+              <Clock className="w-3.5 h-3.5 text-blue-400" />
+              <span>Previsão a Entrar (Pendente)</span>
+            </div>
+            <p className="text-sm sm:text-base font-bold text-blue-400 mt-0.5">
+              +{formatCurrency(filteredData.pendingReceivables)}
+            </p>
+            <p className="text-[10px] text-slate-500">Tranches de clientes contratadas</p>
+          </div>
+
+          <div className="bg-black/30 rounded-xl p-2.5 border border-white/[0.04]">
+            <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400">
+              <Clock className="w-3.5 h-3.5 text-purple-400" />
+              <span>Previsão a Sair (Pendente)</span>
+            </div>
+            <p className="text-sm sm:text-base font-bold text-purple-400 mt-0.5">
+              -{formatCurrency(filteredData.pendingPayables)}
+            </p>
+            <p className="text-[10px] text-slate-500">Fases a liquidar a equipas</p>
+          </div>
+        </div>
+      </div>
 
       {/* KPI Cards Grid - 2 cols on mobile for immediate overview */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">

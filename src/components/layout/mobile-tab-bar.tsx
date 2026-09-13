@@ -40,6 +40,7 @@ export function MobileTabBar() {
           <Link
             key={item.href}
             href={item.href}
+            prefetch={true}
             className={cn(
               'flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all ios-interactive',
               isActive ? 'text-blue-400' : 'text-slate-500 hover:text-slate-300'

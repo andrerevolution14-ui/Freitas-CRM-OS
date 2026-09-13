@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/session'
 import { CalendarioClient } from './calendario-client'
 
 export const metadata = { title: 'Calendário — Freitas OS' }
+export const revalidate = 10
 
 export default async function CalendarioPage() {
   await requireAuth()

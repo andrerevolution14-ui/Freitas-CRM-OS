@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { NotasClient } from './notas-client'
 
 export const metadata = { title: 'Notas — Freitas OS' }
+export const revalidate = 10
 
 export default async function NotasPage() {
   const [notes, projects, leads] = await Promise.all([
