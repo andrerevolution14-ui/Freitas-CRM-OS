@@ -102,9 +102,9 @@ export default function LoginPage() {
         <div className="bg-[#111622] border border-white/[0.12] rounded-2xl p-5 sm:p-6 shadow-[0_20px_50px_rgba(0,0,0,0.8)]">
           <div className="mb-4">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
-              Selecionar Perfil
+              Acesso Rápido — 1 Toque
             </p>
-            {/* Quick Profile Switcher with direct onPointerDown for instant touch */}
+            {/* Quick 1-Tap Login Buttons */}
             <div className="grid grid-cols-2 gap-2.5">
               {PRESET_USERS.map((user) => {
                 const isSelected = selectedUser === user.email
@@ -112,12 +112,30 @@ export default function LoginPage() {
                   <button
                     key={user.email}
                     type="button"
-                    onClick={() => handleSelectUser(user)}
-                    onPointerDown={() => handleSelectUser(user)}
-                    className={`relative flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all cursor-pointer min-h-[54px] active:scale-[0.96] ${
+                    disabled={loading}
+                    onClick={() => {
+                      handleSelectUser(user)
+                      // Submete diretamente para login imediato com 1 toque
+                      setEmail(user.email)
+                      setPassword(user.password)
+                      signIn('credentials', {
+                        email: user.email,
+                        password: user.password,
+                        redirect: false,
+                      }).then((res) => {
+                        if (!res?.error) {
+                          window.location.href = '/dashboard'
+                        } else {
+                          setError('Erro ao aceder. Tente novamente.')
+                        }
+                      }).catch(() => {
+                        window.location.href = '/dashboard'
+                      })
+                    }}
+                    className={`relative flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all cursor-pointer min-h-[56px] active:scale-[0.95] ${
                       isSelected
-                        ? 'bg-blue-600/30 border-blue-500 shadow-[0_0_16px_rgba(59,130,246,0.35)] ring-2 ring-blue-400'
-                        : 'bg-white/[0.04] border-white/[0.1] hover:bg-white/[0.08] active:bg-white/[0.12]'
+                        ? 'bg-blue-600/35 border-blue-400 shadow-[0_0_18px_rgba(59,130,246,0.4)] ring-2 ring-blue-400'
+                        : 'bg-white/[0.05] border-white/[0.12] hover:bg-white/[0.09] active:bg-blue-600/20'
                     }`}
                   >
                     <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0 ring-1 ring-white/20 bg-slate-800 pointer-events-none">
@@ -130,11 +148,8 @@ export default function LoginPage() {
                     </div>
                     <div className="min-w-0 flex-1 pointer-events-none">
                       <p className="text-xs font-bold text-white truncate">{user.name.split(' ')[0]}</p>
-                      <p className="text-[10px] text-slate-400 truncate">{user.name.split(' ')[1]}</p>
+                      <p className="text-[10px] text-blue-400 font-semibold truncate">Entrar direto ➔</p>
                     </div>
-                    {isSelected && (
-                      <div className="w-2.5 h-2.5 rounded-full bg-blue-400 absolute top-2 right-2 pointer-events-none shadow-[0_0_8px_rgba(96,165,250,1)]" />
-                    )}
                   </button>
                 )
               })}
@@ -234,7 +249,7 @@ export default function LoginPage() {
         </div>
 
         <p className="text-center text-[11px] text-slate-500 mt-4 tracking-wide">
-          Freitas Renovações © 2024 · Todos os direitos reservados
+          Freitas Renovações © 2024 · <span className="text-blue-400/80 font-mono">v2.0 (Toque Direto)</span>
         </p>
       </div>
     </div>
