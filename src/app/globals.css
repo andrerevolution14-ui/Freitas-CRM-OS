@@ -51,6 +51,11 @@ html, body {
   touch-action: manipulation;
 }
 
+button, a, input, select, textarea, [role="button"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
 html { scroll-behavior: smooth; }
 
 body {

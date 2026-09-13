@@ -63,7 +63,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-[#0a0d14] px-4 py-8 select-none">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-[#0a0d14] px-4 py-8">
       {/* Dynamic ambient bank-grade glowing background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-gradient-to-b from-blue-600/15 via-indigo-600/5 to-transparent blur-3xl rounded-full" />
@@ -105,25 +105,30 @@ export default function LoginPage() {
                     key={user.email}
                     type="button"
                     onClick={() => handleSelectUser(user)}
-                    className={`relative flex items-center gap-2.5 p-2.5 rounded-xl border text-left transition-all ${
+                    onTouchEnd={(e) => {
+                      e.preventDefault()
+                      handleSelectUser(user)
+                    }}
+                    className={`relative flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all cursor-pointer touch-manipulation min-h-[58px] active:scale-[0.97] z-20 ${
                       isSelected
-                        ? 'bg-blue-600/15 border-blue-500/40 shadow-[0_0_15px_rgba(59,130,246,0.15)] ring-1 ring-blue-400/30'
-                        : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.05] hover:border-white/[0.1]'
+                        ? 'bg-blue-600/20 border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.2)] ring-1 ring-blue-400/40'
+                        : 'bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.06] hover:border-white/[0.12] active:bg-white/[0.08]'
                     }`}
                   >
-                    <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0 ring-1 ring-white/20 bg-slate-800">
+                    <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0 ring-1 ring-white/20 bg-slate-800 pointer-events-none select-none">
                       <img
                         src={user.image}
                         alt={user.name}
-                        className="w-full h-full object-cover object-top"
+                        draggable={false}
+                        className="w-full h-full object-cover object-top pointer-events-none select-none"
                       />
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-semibold text-white truncate">{user.name.split(' ')[0]}</p>
-                      <p className="text-[10px] text-slate-400 truncate">{user.name.split(' ')[1]}</p>
+                    <div className="min-w-0 flex-1 pointer-events-none select-none">
+                      <p className="text-xs font-semibold text-white truncate pointer-events-none">{user.name.split(' ')[0]}</p>
+                      <p className="text-[10px] text-slate-400 truncate pointer-events-none">{user.name.split(' ')[1]}</p>
                     </div>
                     {isSelected && (
-                      <div className="w-1.5 h-1.5 rounded-full bg-blue-400 absolute top-2 right-2" />
+                      <div className="w-2 h-2 rounded-full bg-blue-400 absolute top-2.5 right-2.5 pointer-events-none shadow-[0_0_8px_rgba(96,165,250,0.8)]" />
                     )}
                   </button>
                 )
@@ -142,7 +147,7 @@ export default function LoginPage() {
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1.5">Email de Acesso</label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
                 <input
                   type="email"
                   value={email}
@@ -153,7 +158,7 @@ export default function LoginPage() {
                   required
                   autoComplete="username"
                   suppressHydrationWarning
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm text-white placeholder-slate-500 bg-[#161c2b] border border-white/[0.08] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm text-white placeholder-slate-500 bg-[#161c2b] border border-white/[0.08] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all touch-manipulation text-base sm:text-sm"
                   placeholder="utilizador@freitasrenovacoes.pt"
                 />
               </div>
@@ -165,7 +170,7 @@ export default function LoginPage() {
                 <span className="text-[10px] text-slate-500">Acesso Encriptado</span>
               </div>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
@@ -173,17 +178,21 @@ export default function LoginPage() {
                   required
                   autoComplete="current-password"
                   suppressHydrationWarning
-                  className="w-full pl-10 pr-11 py-2.5 rounded-xl text-sm text-white placeholder-slate-500 bg-[#161c2b] border border-white/[0.08] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-mono tracking-wide"
+                  className="w-full pl-10 pr-12 py-2.5 rounded-xl text-sm text-white placeholder-slate-500 bg-[#161c2b] border border-white/[0.08] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-mono tracking-wide touch-manipulation text-base sm:text-sm"
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors p-1"
+                  onTouchEnd={(e) => {
+                    e.preventDefault()
+                    setShowPassword((prev) => !prev)
+                  }}
+                  className="absolute right-0 top-0 bottom-0 w-12 flex items-center justify-center text-slate-400 hover:text-white active:text-white transition-colors cursor-pointer touch-manipulation z-20"
                   tabIndex={-1}
-                  title={showPassword ? 'Ocultar' : 'Mostrar'}
+                  aria-label={showPassword ? 'Ocultar palavra-passe' : 'Mostrar palavra-passe'}
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? <EyeOff className="w-4 h-4 pointer-events-none" /> : <Eye className="w-4 h-4 pointer-events-none" />}
                 </button>
               </div>
             </div>
@@ -191,7 +200,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 py-3 rounded-xl font-medium text-white text-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.99] transition-all duration-150 flex items-center justify-center gap-2 shadow-lg shadow-blue-600/25 disabled:opacity-60"
+              className="w-full mt-2 py-3.5 rounded-xl font-medium text-white text-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2 shadow-lg shadow-blue-600/25 disabled:opacity-60 cursor-pointer touch-manipulation min-h-[48px]"
             >
               {loading ? (
                 <>
