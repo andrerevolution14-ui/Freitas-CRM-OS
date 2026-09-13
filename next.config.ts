@@ -28,6 +28,7 @@ if (!process.env.NEXTAUTH_SECRET || process.env.NEXTAUTH_SECRET.trim() === "") {
 }
 
 const nextConfig: NextConfig = {
+  devIndicators: false,
   serverExternalPackages: ["@prisma/client", "prisma", "bcryptjs"],
   env: {
     NEXTAUTH_URL: activeNextAuthUrl,
