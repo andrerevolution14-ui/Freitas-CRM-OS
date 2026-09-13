@@ -39,65 +39,79 @@ export default function LoginPage() {
     setError('')
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
+  async function handleSubmit(e?: React.FormEvent) {
+    if (e) e.preventDefault()
+    if (loading) return
 
     const cleanEmail = email.trim()
     const cleanPassword = password.trim()
 
-    const result = await signIn('credentials', {
-      email: cleanEmail,
-      password: cleanPassword,
-      redirect: false,
-    })
+    if (!cleanEmail || !cleanPassword) {
+      setError('Por favor, preencha o email e a palavra-passe.')
+      return
+    }
 
-    if (result?.error) {
-      setError('Credenciais inválidas. Verifique o email e a palavra-passe.')
+    setLoading(true)
+    setError('')
+
+    try {
+      const result = await signIn('credentials', {
+        email: cleanEmail,
+        password: cleanPassword,
+        redirect: false,
+      })
+
+      if (result?.error) {
+        console.error('NextAuth signIn error:', result.error)
+        setError('Credenciais inválidas. Verifique o email e a palavra-passe.')
+        setLoading(false)
+      } else {
+        // Redirecionamento completo para garantir atualização de cookies no telemóvel
+        window.location.href = '/dashboard'
+      }
+    } catch (err) {
+      console.error('Erro na submissão de login:', err)
+      setError('Erro ao contactar o servidor de autenticação. Tente novamente.')
       setLoading(false)
-    } else {
-      router.push('/dashboard')
-      router.refresh()
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-[#0a0d14] px-4 py-8">
+    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center relative bg-[#0a0d14] px-4 py-4 sm:py-8 overflow-y-auto">
       {/* Dynamic ambient bank-grade glowing background */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[700px] h-[350px] bg-gradient-to-b from-blue-600/15 via-indigo-600/5 to-transparent blur-3xl rounded-full" />
-        <div className="absolute -bottom-40 right-10 w-[500px] h-[400px] bg-purple-600/10 blur-3xl rounded-full" />
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-gradient-to-b from-blue-600/20 via-indigo-600/10 to-transparent blur-3xl rounded-full" />
+        <div className="absolute -bottom-40 right-10 w-[400px] h-[300px] bg-purple-600/10 blur-3xl rounded-full" />
         <div className="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px] opacity-25" />
       </div>
 
-      <div className="relative w-full max-w-[420px] z-10">
-        {/* Brand Header */}
-        <div className="text-center mb-6 flex flex-col items-center">
-          <div className="relative w-44 h-32 mb-2 flex items-center justify-center">
+      <div className="relative w-full max-w-[390px] z-10 my-auto">
+        {/* Brand Header — Compact for mobile */}
+        <div className="text-center mb-3 sm:mb-5 flex flex-col items-center">
+          <div className="relative w-36 h-20 sm:w-44 sm:h-28 mb-1 flex items-center justify-center">
             <Image
               src="/logo.png"
               alt="Freitas Renovações"
-              width={160}
-              height={120}
+              width={140}
+              height={90}
               priority
-              className="object-contain filter drop-shadow-[0_4px_16px_rgba(255,255,255,0.1)]"
+              className="object-contain filter drop-shadow-[0_4px_16px_rgba(255,255,255,0.12)] max-h-full"
             />
           </div>
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold tracking-wide shadow-sm">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[11px] font-semibold tracking-wide shadow-sm">
             <ShieldCheck className="w-3.5 h-3.5" />
             Portal de Gestão Executiva
           </div>
         </div>
 
         {/* Banking-Grade Card */}
-        <div className="bg-[#111622]/90 backdrop-blur-xl border border-white/[0.08] rounded-2xl p-6 sm:p-7 shadow-[0_20px_50px_rgba(0,0,0,0.5)] ring-1 ring-white/[0.04]">
-          <div className="mb-5">
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2.5">
+        <div className="bg-[#111622]/95 backdrop-blur-xl border border-white/[0.09] rounded-2xl p-4 sm:p-6 shadow-[0_20px_50px_rgba(0,0,0,0.6)] ring-1 ring-white/[0.05]">
+          <div className="mb-3.5 sm:mb-4">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
               Selecionar Perfil
             </p>
             {/* Quick Profile Switcher */}
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 gap-2">
               {PRESET_USERS.map((user) => {
                 const isSelected = selectedUser === user.email
                 return (
@@ -105,17 +119,13 @@ export default function LoginPage() {
                     key={user.email}
                     type="button"
                     onClick={() => handleSelectUser(user)}
-                    onTouchEnd={(e) => {
-                      e.preventDefault()
-                      handleSelectUser(user)
-                    }}
-                    className={`relative flex items-center gap-2.5 p-3 rounded-xl border text-left transition-all cursor-pointer touch-manipulation min-h-[58px] active:scale-[0.97] z-20 ${
+                    className={`relative flex items-center gap-2 p-2.5 rounded-xl border text-left transition-all cursor-pointer touch-manipulation min-h-[50px] active:scale-[0.97] ${
                       isSelected
-                        ? 'bg-blue-600/20 border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.2)] ring-1 ring-blue-400/40'
-                        : 'bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.06] hover:border-white/[0.12] active:bg-white/[0.08]'
+                        ? 'bg-blue-600/25 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.25)] ring-2 ring-blue-400'
+                        : 'bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.06] active:bg-white/[0.08]'
                     }`}
                   >
-                    <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0 ring-1 ring-white/20 bg-slate-800 pointer-events-none select-none">
+                    <div className="relative w-9 h-9 rounded-full overflow-hidden flex-shrink-0 ring-1 ring-white/20 bg-slate-800 pointer-events-none select-none">
                       <img
                         src={user.image}
                         alt={user.name}
@@ -128,7 +138,7 @@ export default function LoginPage() {
                       <p className="text-[10px] text-slate-400 truncate pointer-events-none">{user.name.split(' ')[1]}</p>
                     </div>
                     {isSelected && (
-                      <div className="w-2 h-2 rounded-full bg-blue-400 absolute top-2.5 right-2.5 pointer-events-none shadow-[0_0_8px_rgba(96,165,250,0.8)]" />
+                      <div className="w-2 h-2 rounded-full bg-blue-400 absolute top-2 right-2 pointer-events-none shadow-[0_0_8px_rgba(96,165,250,0.9)]" />
                     )}
                   </button>
                 )
@@ -137,15 +147,15 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 p-3 rounded-xl mb-4 bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
+            <div className="flex items-center gap-2 p-2.5 rounded-xl mb-3 bg-red-500/10 border border-red-500/25 text-red-400 text-xs">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              {error}
+              <span>{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-3.5">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1.5">Email de Acesso</label>
+              <label className="block text-xs font-medium text-slate-300 mb-1">Email de Acesso</label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
                 <input
@@ -158,14 +168,14 @@ export default function LoginPage() {
                   required
                   autoComplete="username"
                   suppressHydrationWarning
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm text-white placeholder-slate-500 bg-[#161c2b] border border-white/[0.08] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all touch-manipulation text-base sm:text-sm"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl text-base sm:text-sm text-white placeholder-slate-500 bg-[#161c2b] border border-white/[0.08] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all touch-manipulation"
                   placeholder="utilizador@freitasrenovacoes.pt"
                 />
               </div>
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center justify-between mb-1">
                 <label className="block text-xs font-medium text-slate-300">Palavra-passe</label>
                 <span className="text-[10px] text-slate-500">Acesso Encriptado</span>
               </div>
@@ -178,16 +188,12 @@ export default function LoginPage() {
                   required
                   autoComplete="current-password"
                   suppressHydrationWarning
-                  className="w-full pl-10 pr-12 py-2.5 rounded-xl text-sm text-white placeholder-slate-500 bg-[#161c2b] border border-white/[0.08] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-mono tracking-wide touch-manipulation text-base sm:text-sm"
+                  className="w-full pl-10 pr-12 py-2.5 rounded-xl text-base sm:text-sm text-white placeholder-slate-500 bg-[#161c2b] border border-white/[0.08] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-mono tracking-wide touch-manipulation"
                   placeholder="••••••••"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  onTouchEnd={(e) => {
-                    e.preventDefault()
-                    setShowPassword((prev) => !prev)
-                  }}
+                  onClick={() => setShowPassword((prev) => !prev)}
                   className="absolute right-0 top-0 bottom-0 w-12 flex items-center justify-center text-slate-400 hover:text-white active:text-white transition-colors cursor-pointer touch-manipulation z-20"
                   tabIndex={-1}
                   aria-label={showPassword ? 'Ocultar palavra-passe' : 'Mostrar palavra-passe'}
@@ -197,10 +203,11 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {/* High-visibility primary submit button */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-2 py-3.5 rounded-xl font-medium text-white text-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2 shadow-lg shadow-blue-600/25 disabled:opacity-60 cursor-pointer touch-manipulation min-h-[48px]"
+              className="w-full mt-2 py-3 rounded-xl font-bold text-white text-sm bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.98] transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-600/30 border border-blue-400/30 disabled:opacity-60 cursor-pointer touch-manipulation min-h-[46px]"
             >
               {loading ? (
                 <>
@@ -216,7 +223,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-5 pt-4 border-t border-white/[0.06] flex items-center justify-between text-[11px] text-slate-400">
+          <div className="mt-3.5 pt-3 border-t border-white/[0.06] flex items-center justify-between text-[11px] text-slate-400">
             <span>Sessão protegida por JWT</span>
             <span className="text-emerald-400 flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -225,7 +232,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <p className="text-center text-[11px] text-slate-500 mt-6 tracking-wide">
+        <p className="text-center text-[11px] text-slate-500 mt-3 sm:mt-5 tracking-wide">
           Freitas Renovações © 2024 · Todos os direitos reservados
         </p>
       </div>
