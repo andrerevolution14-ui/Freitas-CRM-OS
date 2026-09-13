@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Lock, Mail, AlertCircle, Loader2, ShieldCheck, ArrowRight } from 'lucide-react'
+import { Lock, Mail, AlertCircle, Loader2, ShieldCheck, ArrowRight, Eye, EyeOff, KeyRound } from 'lucide-react'
 
 const PRESET_USERS = [
   {
@@ -29,6 +29,7 @@ export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [selectedUser, setSelectedUser] = useState<string>('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -36,7 +37,7 @@ export default function LoginPage() {
   function handleSelectUser(user: typeof PRESET_USERS[number]) {
     setSelectedUser(user.email)
     setEmail(user.email)
-    setPassword('')
+    setPassword(user.password)
     setError('')
   }
 
@@ -45,14 +46,22 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
 
+    const cleanEmail = email.trim()
+    const cleanPassword = password.trim()
+
     const result = await signIn('credentials', {
-      email,
-      password,
+      email: cleanEmail,
+      password: cleanPassword,
       redirect: false,
     })
 
     if (result?.error) {
-      setError('Credenciais inválidas. Verifique o email e password.')
+      console.error('NextAuth signIn error:', result.error)
+      if (result.error === 'Configuration') {
+        setError('Erro de configuração do servidor de autenticação. A aguardar recarregamento.')
+      } else {
+        setError('Credenciais inválidas. Confirme que o email e palavra-passe estão corretos (ex: andre100 ou jorge100).')
+      }
       setLoading(false)
     } else {
       router.push('/dashboard')
@@ -160,20 +169,29 @@ export default function LoginPage() {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-xs font-medium text-slate-300">Palavra-passe</label>
-                <span className="text-[10px] text-slate-500">Acesso Encriptado</span>
+                <span className="text-[10px] text-blue-400/80 font-mono">padrão: andre100 ou jorge100</span>
               </div>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="current-password"
                   suppressHydrationWarning
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm text-white placeholder-slate-500 bg-[#161c2b] border border-white/[0.08] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                  className="w-full pl-10 pr-11 py-2.5 rounded-xl text-sm text-white placeholder-slate-500 bg-[#161c2b] border border-white/[0.08] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-mono tracking-wide"
                   placeholder="••••••••"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors p-1"
+                  tabIndex={-1}
+                  title={showPassword ? 'Ocultar' : 'Mostrar'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
               </div>
             </div>
 
