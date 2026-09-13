@@ -131,19 +131,18 @@ export async function deleteDocument(id: string, projectId: string) {
 
 // Dashboard stats
 export async function getDashboardStats() {
-  const [projects, expenses, clientTranches, subPayments] = await Promise.all([
-    prisma.project.findMany({
-      include: {
-        expenses: true,
-        clientTranches: true,
-        subPayments: { include: { subcontractor: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    }),
-    prisma.expense.findMany({ orderBy: { date: 'desc' } }),
-    prisma.clientTranche.findMany({ orderBy: { dueDate: 'asc' } }),
-    prisma.subcontractorPayment.findMany({ include: { subcontractor: true }, orderBy: { dueDate: 'asc' } }),
-  ])
+  const projects = await prisma.project.findMany({
+    include: {
+      expenses: true,
+      clientTranches: true,
+      subPayments: { include: { subcontractor: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  const expenses = projects.flatMap((p) => p.expenses)
+  const clientTranches = projects.flatMap((p) => p.clientTranches)
+  const subPayments = projects.flatMap((p) => p.subPayments)
 
   const totalRevenue = projects.reduce((s, p) => s + p.contractValue, 0)
   const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0)

@@ -149,6 +149,8 @@ export default function LoginPage() {
                     setSelectedUser('')
                   }}
                   required
+                  autoComplete="username"
+                  suppressHydrationWarning
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm text-white placeholder-slate-500 bg-[#161c2b] border border-white/[0.08] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
                   placeholder="utilizador@freitasrenovacoes.pt"
                 />
@@ -167,6 +169,8 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  autoComplete="current-password"
+                  suppressHydrationWarning
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm text-white placeholder-slate-500 bg-[#161c2b] border border-white/[0.08] focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
                   placeholder="••••••••"
                 />
