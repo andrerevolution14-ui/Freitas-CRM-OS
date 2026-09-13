@@ -11,7 +11,6 @@ const PRESET_USERS = [
     name: 'André Queirós',
     role: 'Sócio-Administrador',
     email: 'andre@freitasrenovacoes.pt',
-    password: 'andre100',
     image: '/avatar-andre.jpg',
     color: '#3b82f6',
   },
@@ -19,7 +18,6 @@ const PRESET_USERS = [
     name: 'Jorge Freitas',
     role: 'Sócio-Fundador',
     email: 'jorge@freitasrenovacoes.pt',
-    password: 'jorge100',
     image: '/avatar-jorge.jpg',
     color: '#8b5cf6',
   },
@@ -37,7 +35,7 @@ export default function LoginPage() {
   function handleSelectUser(user: typeof PRESET_USERS[number]) {
     setSelectedUser(user.email)
     setEmail(user.email)
-    setPassword(user.password)
+    setPassword('')
     setError('')
   }
 
@@ -56,12 +54,7 @@ export default function LoginPage() {
     })
 
     if (result?.error) {
-      console.error('NextAuth signIn error:', result.error)
-      if (result.error === 'Configuration') {
-        setError('Erro de configuração do servidor de autenticação. A aguardar recarregamento.')
-      } else {
-        setError('Credenciais inválidas. Confirme que o email e palavra-passe estão corretos (ex: andre100 ou jorge100).')
-      }
+      setError('Credenciais inválidas. Verifique o email e a palavra-passe.')
       setLoading(false)
     } else {
       router.push('/dashboard')
@@ -169,7 +162,7 @@ export default function LoginPage() {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-xs font-medium text-slate-300">Palavra-passe</label>
-                <span className="text-[10px] text-blue-400/80 font-mono">padrão: andre100 ou jorge100</span>
+                <span className="text-[10px] text-slate-500">Acesso Encriptado</span>
               </div>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />

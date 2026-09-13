@@ -33,24 +33,11 @@ export const authOptions: NextAuthOptions = {
             return null
           }
 
-          // Verificação por hash bcrypt ou palavras-passe de recuperação conhecidas
-          const isBcryptValid = await bcrypt.compare(cleanPassword, user.password)
-          const isAndreAlias = cleanEmail.includes('andre') && ['andre100', 'andre', 'freitas', 'freitas100', '123456', 'admin'].includes(cleanPassword.toLowerCase())
-          const isJorgeAlias = cleanEmail.includes('jorge') && ['jorge100', 'jorge', 'freitas', 'freitas100', '123456', 'admin'].includes(cleanPassword.toLowerCase())
-
-          const isValid = isBcryptValid || isAndreAlias || isJorgeAlias
+          // Verificação estrita de segurança através de hash bcrypt
+          const isValid = await bcrypt.compare(cleanPassword, user.password)
           if (!isValid) {
             console.log(`[AUTH] Palavra-passe incorreta para: ${cleanEmail}`)
             return null
-          }
-
-          // Se entrou por alias, atualiza o hash no Supabase para consistência
-          if (!isBcryptValid && (isAndreAlias || isJorgeAlias)) {
-            const newHash = await bcrypt.hash(cleanPassword, 12)
-            await prisma.user.update({
-              where: { id: user.id },
-              data: { password: newHash },
-            }).catch(() => {})
           }
 
           return {
