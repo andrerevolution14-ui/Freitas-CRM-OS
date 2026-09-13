@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 
 export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET || 'freitas-renovacoes-secret-2024-super-secure',
   providers: [
     CredentialsProvider({
       name: 'Credenciais',
@@ -14,22 +15,27 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        })
+        try {
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email },
+          })
 
-        if (!user) return null
+          if (!user) return null
 
-        const isValid = await bcrypt.compare(credentials.password, user.password)
-        if (!isValid) return null
+          const isValid = await bcrypt.compare(credentials.password, user.password)
+          if (!isValid) return null
 
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          color: user.color,
-          image: user.image ?? null,
+          return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            color: user.color,
+            image: user.image ?? null,
+          }
+        } catch (error) {
+          console.error('[AUTH_AUTHORIZE_ERROR]', error)
+          return null
         }
       },
     }),
@@ -55,7 +61,10 @@ export const authOptions: NextAuthOptions = {
       return session
     },
   },
-  pages: { signIn: '/login' },
+  pages: { 
+    signIn: '/login',
+    error: '/login',
+  },
 }
 
 export default NextAuth(authOptions)
