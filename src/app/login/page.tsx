@@ -27,16 +27,16 @@ const PRESET_USERS = [
 
 export default function LoginPage() {
   const router = useRouter()
-  const [email, setEmail] = useState(PRESET_USERS[0].email)
-  const [password, setPassword] = useState(PRESET_USERS[0].password)
-  const [selectedUser, setSelectedUser] = useState<string>(PRESET_USERS[0].email)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [selectedUser, setSelectedUser] = useState<string>('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   function handleSelectUser(user: typeof PRESET_USERS[number]) {
     setSelectedUser(user.email)
     setEmail(user.email)
-    setPassword(user.password)
+    setPassword('')
     setError('')
   }
 
@@ -71,18 +71,18 @@ export default function LoginPage() {
 
       <div className="relative w-full max-w-[420px] z-10">
         {/* Brand Header */}
-        <div className="text-center mb-8 flex flex-col items-center">
-          <div className="relative w-48 h-14 mb-3 flex items-center justify-center">
+        <div className="text-center mb-6 flex flex-col items-center">
+          <div className="relative w-44 h-32 mb-2 flex items-center justify-center">
             <Image
               src="/logo.png"
               alt="Freitas Renovações"
-              width={190}
-              height={55}
+              width={160}
+              height={120}
               priority
-              className="object-contain filter drop-shadow-[0_4px_12px_rgba(255,255,255,0.08)]"
+              className="object-contain filter drop-shadow-[0_4px_16px_rgba(255,255,255,0.1)]"
             />
           </div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium tracking-wide">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold tracking-wide shadow-sm">
             <ShieldCheck className="w-3.5 h-3.5" />
             Portal de Gestão Executiva
           </div>
