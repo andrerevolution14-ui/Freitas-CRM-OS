@@ -121,12 +121,32 @@ export async function createDocument(data: {
 }) {
   const doc = await prisma.document.create({ data })
   revalidatePath(`/obras/${data.projectId}`)
+  revalidatePath('/pro-formas')
   return doc
 }
 
 export async function deleteDocument(id: string, projectId: string) {
   await prisma.document.delete({ where: { id } })
   revalidatePath(`/obras/${projectId}`)
+  revalidatePath('/pro-formas')
+}
+
+export async function getAllProFormas() {
+  const docs = await prisma.document.findMany({
+    include: {
+      project: {
+        select: {
+          id: true,
+          title: true,
+          clientName: true,
+          address: true,
+          status: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+  return docs
 }
 
 // Dashboard stats

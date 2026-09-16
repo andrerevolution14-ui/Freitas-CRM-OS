@@ -13,6 +13,7 @@ import {
   LogOut,
   CalendarDays,
   ChevronRight,
+  FileText,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { UserAvatar } from '@/components/ui/user-avatar'
@@ -21,6 +22,7 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard',      icon: LayoutDashboard, color: 'text-blue-400' },
   { href: '/leads',     label: 'Pipeline CRM',   icon: FolderKanban,    color: 'text-purple-400' },
   { href: '/obras',     label: 'Obras',          icon: HardHat,         color: 'text-blue-400' },
+  { href: '/pro-formas', label: 'Pró-Formas',    icon: FileText,        color: 'text-indigo-400' },
   { href: '/subempreiteiros', label: 'Equipa',   icon: Users,           color: 'text-amber-400' },
   { href: '/calendario',label: 'Calendário',     icon: CalendarDays,    color: 'text-emerald-400' },
   { href: '/notas',     label: 'Notas',          icon: StickyNote,      color: 'text-amber-400' },

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { StickyNote, X, Plus, Loader2, LogOut, Users, ShieldCheck, ChevronDown } from 'lucide-react'
+import { StickyNote, X, Plus, Loader2, LogOut, Users, ShieldCheck, ChevronDown, FileText } from 'lucide-react'
 import { createNote } from '@/server/actions/notes'
 import { useSession, signOut } from 'next-auth/react'
 import { UserAvatar } from '@/components/ui/user-avatar'
@@ -124,6 +124,15 @@ export function Header({ title }: { title?: string }) {
                   >
                     <Users className="w-4 h-4 text-amber-600" />
                     <span>Equipa & Subempreiteiros</span>
+                  </Link>
+
+                  <Link
+                    href="/pro-formas"
+                    onClick={() => setShowUserMenu(false)}
+                    className="flex items-center gap-2.5 px-2.5 py-2 rounded-[3px] text-xs font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+                  >
+                    <FileText className="w-4 h-4 text-indigo-600" />
+                    <span>Faturas Pró-Forma</span>
                   </Link>
                 </div>
 

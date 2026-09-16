@@ -36,12 +36,11 @@ export function Modal({
       if (e.key === 'Escape') onClose()
     }
 
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    document.body.classList.add('modal-open')
     window.addEventListener('keydown', handleKeyDown)
 
     return () => {
-      document.body.style.overflow = prevOverflow
+      document.body.classList.remove('modal-open')
       window.removeEventListener('keydown', handleKeyDown)
     }
   }, [isOpen, onClose])

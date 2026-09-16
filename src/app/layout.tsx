@@ -45,8 +45,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="pt" suppressHydrationWarning data-scroll-behavior="smooth" className="overflow-x-hidden w-full max-w-full bg-[#eaedf2]">
-      <body className={`${inter.variable} font-sans antialiased overflow-x-hidden w-full max-w-full bg-[#eaedf2] text-slate-900 select-none md:select-auto`}>
+    <html lang="pt" suppressHydrationWarning className="bg-[#eaedf2]">
+      <body className={`${inter.variable} font-sans antialiased bg-[#eaedf2] text-slate-900`}>
         <Providers>{children}</Providers>
       </body>
     </html>
