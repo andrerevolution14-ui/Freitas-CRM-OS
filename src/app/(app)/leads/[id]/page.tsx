@@ -13,6 +13,8 @@ const STATUS_COLOR: Record<LeadStatus, string> = {
   PERDIDA: 'badge-red',
 }
 
+import { DeleteLeadButton } from './delete-lead-button'
+
 export default async function LeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const lead = await getLead(id)
@@ -40,6 +42,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             </div>
           </div>
         </div>
+        <DeleteLeadButton leadId={lead.id} clientName={lead.clientName} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

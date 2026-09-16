@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft, TrendingUp, TrendingDown, Wallet, FileText, StickyNote,
   Plus, Trash2, X, Loader2, Check, Clock, AlertTriangle, Upload,
@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import {
   createExpense, deleteExpense, createClientTranche, updateTrancheStatus,
-  deleteClientTranche, createDocument, deleteDocument, updateProject
+  deleteClientTranche, createDocument, deleteDocument, updateProject, deleteProject
 } from '@/server/actions/projects'
 import { createSubcontractorPayment, updateSubPaymentStatus } from '@/server/actions/subcontractors'
 import { createNote, deleteNote } from '@/server/actions/notes'
@@ -65,10 +65,19 @@ function Section({ title, action, children }: { title: string; action?: React.Re
 
 export function ObraDetailClient({ project: initialProject, subcontractors }: { project: NonNullable<Project>; subcontractors: Subcontractor[] }) {
   const [project, setProject] = useState(initialProject)
+  const router = useRouter()
   const searchParams = useSearchParams()
   const initialTab = searchParams?.get('tab') || 'overview'
   const [activeTab, setActiveTab] = useState(initialTab)
   const [isPending, startTransition] = useTransition()
+
+  async function handleDeleteProject() {
+    if (!confirm(`Eliminar a obra "${project.title}" permanentemente? Todos os registos associados serão eliminados.`)) return
+    startTransition(async () => {
+      await deleteProject(project.id)
+      router.push('/obras')
+    })
+  }
 
   // Computed financials
   const totalExpenses = project.expenses.reduce((s, e) => s + e.amount, 0)
@@ -288,6 +297,13 @@ export function ObraDetailClient({ project: initialProject, subcontractors }: { 
             className="px-3 py-2 rounded-[4px] text-xs font-bold uppercase tracking-wider text-slate-800 bg-slate-50 border border-slate-300 focus:outline-none focus:border-blue-500 cursor-pointer">
             {STATUS_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label.toUpperCase()}</option>)}
           </select>
+          <button
+            onClick={handleDeleteProject}
+            title="Eliminar esta obra permanentemente"
+            className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-[4px] border border-slate-300 transition-colors flex items-center justify-center active:scale-95"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
         </div>
       </div>
 

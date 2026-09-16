@@ -81,12 +81,21 @@ export async function deleteLead(id: string) {
   revalidatePath('/leads')
 }
 
+function sanitizeDate(date?: Date | string | null): Date | undefined {
+  if (!date) return undefined
+  const d = typeof date === 'string' ? new Date(date) : date
+  if (!(d instanceof Date) || isNaN(d.getTime())) return undefined
+  const year = d.getFullYear()
+  if (year < 1970 || year > 2100) return undefined
+  return d
+}
+
 export async function convertLeadToProject(
   leadId: string,
   projectData: {
     title: string
     contractValue: number
-    startDate?: Date
+    startDate?: Date | string
     clientNIF?: string
   }
 ) {
@@ -102,7 +111,7 @@ export async function convertLeadToProject(
       clientNIF: projectData.clientNIF,
       address: lead.address,
       contractValue: projectData.contractValue,
-      startDate: projectData.startDate,
+      startDate: sanitizeDate(projectData.startDate),
       status: 'EM_PLANEAMENTO',
       createdById,
     },

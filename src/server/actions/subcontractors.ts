@@ -60,23 +60,37 @@ export async function deleteSubcontractor(id: string) {
   revalidatePath('/subempreiteiros')
 }
 
+function sanitizeDate(date?: Date | string | null): Date | undefined {
+  if (!date) return undefined
+  const d = typeof date === 'string' ? new Date(date) : date
+  if (!(d instanceof Date) || isNaN(d.getTime())) return undefined
+  const year = d.getFullYear()
+  if (year < 1970 || year > 2100) return undefined
+  return d
+}
+
 export async function createSubcontractorPayment(data: {
   projectId: string
   subcontractorId: string
   phaseDescription: string
   amount: number
-  dueDate: Date
+  dueDate: Date | string
 }) {
-  const payment = await prisma.subcontractorPayment.create({ data })
+  const payment = await prisma.subcontractorPayment.create({
+    data: {
+      ...data,
+      dueDate: sanitizeDate(data.dueDate) || new Date(),
+    },
+  })
   revalidatePath('/subempreiteiros')
   revalidatePath(`/obras/${data.projectId}`)
   return payment
 }
 
-export async function updateSubPaymentStatus(id: string, status: PaymentStatus, projectId: string) {
+export async function updateSubPaymentStatus(id: string, status: PaymentStatus, projectId: string, paidDate?: Date | string) {
   const payment = await prisma.subcontractorPayment.update({
     where: { id },
-    data: { status, paidDate: status === 'PAGO' ? new Date() : null },
+    data: { status, paidDate: status === 'PAGO' ? (sanitizeDate(paidDate) || new Date()) : null },
   })
   revalidatePath('/subempreiteiros')
   revalidatePath(`/obras/${projectId}`)

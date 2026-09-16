@@ -342,17 +342,15 @@ export function ProFormasClient({ initialTemplates }: { initialTemplates: Genera
                       )}
                     </button>
 
-                    {/* Delete (only for user-uploaded models) */}
-                    {!isDefault && (
-                      <button
-                        onClick={() => handleDelete(tpl.id)}
-                        disabled={isPending}
-                        title="Eliminar este modelo"
-                        className="p-2 text-slate-400 hover:text-red-600 bg-slate-50 hover:bg-red-50 rounded-[3px] transition-colors border border-slate-200"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
+                    {/* Delete button */}
+                    <button
+                      onClick={() => handleDelete(tpl.id)}
+                      disabled={isPending}
+                      title="Eliminar este modelo"
+                      className="p-2 text-slate-400 hover:text-red-600 bg-slate-50 hover:bg-red-50 rounded-[3px] transition-colors border border-slate-200"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
               </div>

@@ -30,17 +30,33 @@ export async function getProject(id: string) {
   })
 }
 
+function sanitizeDate(date?: Date | string | null): Date | undefined {
+  if (!date) return undefined
+  const d = typeof date === 'string' ? new Date(date) : date
+  if (!(d instanceof Date) || isNaN(d.getTime())) return undefined
+  const year = d.getFullYear()
+  // Valid realistic range for Postgres TIMESTAMP
+  if (year < 1970 || year > 2100) return undefined
+  return d
+}
+
 export async function createProject(data: {
   title: string
   clientName: string
   clientNIF?: string
   address: string
   contractValue: number
-  startDate?: Date
-  endDate?: Date
+  startDate?: Date | string
+  endDate?: Date | string
   status?: ProjectStatus
 }) {
-  const project = await prisma.project.create({ data })
+  const project = await prisma.project.create({
+    data: {
+      ...data,
+      startDate: sanitizeDate(data.startDate),
+      endDate: sanitizeDate(data.endDate),
+    },
+  })
   revalidatePath('/obras')
   return project
 }
@@ -51,11 +67,15 @@ export async function updateProject(id: string, data: Partial<{
   clientNIF: string
   address: string
   contractValue: number
-  startDate: Date
-  endDate: Date
+  startDate: Date | string
+  endDate: Date | string
   status: ProjectStatus
 }>) {
-  const project = await prisma.project.update({ where: { id }, data })
+  const updateData = { ...data }
+  if ('startDate' in updateData) updateData.startDate = sanitizeDate(updateData.startDate)
+  if ('endDate' in updateData) updateData.endDate = sanitizeDate(updateData.endDate)
+
+  const project = await prisma.project.update({ where: { id }, data: updateData as any })
   revalidatePath('/obras')
   revalidatePath(`/obras/${id}`)
   return project
@@ -72,10 +92,15 @@ export async function createExpense(data: {
   description: string
   amount: number
   category: ExpenseCategory
-  date?: Date
+  date?: Date | string
   receiptUrl?: string
 }) {
-  const expense = await prisma.expense.create({ data })
+  const expense = await prisma.expense.create({
+    data: {
+      ...data,
+      date: sanitizeDate(data.date) || new Date(),
+    },
+  })
   revalidatePath(`/obras/${data.projectId}`)
   return expense
 }
@@ -91,17 +116,22 @@ export async function createClientTranche(data: {
   description: string
   percentage: number
   amount: number
-  dueDate: Date
+  dueDate: Date | string
 }) {
-  const tranche = await prisma.clientTranche.create({ data })
+  const tranche = await prisma.clientTranche.create({
+    data: {
+      ...data,
+      dueDate: sanitizeDate(data.dueDate) || new Date(),
+    },
+  })
   revalidatePath(`/obras/${data.projectId}`)
   return tranche
 }
 
-export async function updateTrancheStatus(id: string, status: PaymentStatus, projectId: string, paidDate?: Date) {
+export async function updateTrancheStatus(id: string, status: PaymentStatus, projectId: string, paidDate?: Date | string) {
   const tranche = await prisma.clientTranche.update({
     where: { id },
-    data: { status, paidDate: status === 'PAGO' ? (paidDate || new Date()) : null },
+    data: { status, paidDate: status === 'PAGO' ? (sanitizeDate(paidDate) || new Date()) : null },
   })
   revalidatePath(`/obras/${projectId}`)
   return tranche

@@ -274,7 +274,7 @@ export function SubempreiteiroClient({ subcontractors: initial }: { subcontracto
                     )}
                     <button
                       onClick={e => { e.stopPropagation(); handleDelete(sub.id) }}
-                      className="opacity-80 sm:opacity-0 sm:group-hover:opacity-100 text-slate-400 hover:text-red-600 transition-all p-1"
+                      className="text-slate-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-[3px] border border-slate-200 transition-all flex items-center justify-center flex-shrink-0"
                       title="Eliminar"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -340,6 +340,15 @@ export function SubempreiteiroClient({ subcontractors: initial }: { subcontracto
                     <p className="text-slate-600 text-xs">{selected.notes}</p>
                   </div>
                 )}
+                <div className="pt-3 border-t border-slate-100">
+                  <button
+                    onClick={() => handleDelete(selected.id)}
+                    className="w-full py-2 px-3 rounded-[3px] text-xs font-bold uppercase tracking-wider text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 transition-all flex items-center justify-center gap-2"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Eliminar Profissional</span>
+                  </button>
+                </div>
               </div>
             </div>
 

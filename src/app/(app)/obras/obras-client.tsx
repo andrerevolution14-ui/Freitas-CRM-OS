@@ -92,20 +92,30 @@ export function ObrasClient({ projects: initial }: { projects: Project[] }) {
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()
+    if (!form.title.trim() || !form.clientName.trim() || !form.contractValue) return
     startTransition(async () => {
-      const project = await createProject({
-        title: form.title,
-        clientName: form.clientName,
-        clientNIF: form.clientNIF || undefined,
-        address: form.address,
-        contractValue: parseFloat(form.contractValue),
-        startDate: form.startDate ? new Date(form.startDate) : undefined,
-        endDate: form.endDate ? new Date(form.endDate) : undefined,
-        status: form.status,
-      })
-      setProjects(prev => [{ ...project, status: project.status as ProjectStatus, expenses: [], clientTranches: [] }, ...prev])
-      setShowForm(false)
-      router.push(`/obras/${project.id}`)
+      try {
+        const project = await createProject({
+          title: form.title.trim(),
+          clientName: form.clientName.trim(),
+          clientNIF: form.clientNIF?.trim() || undefined,
+          address: form.address.trim(),
+          contractValue: parseFloat(form.contractValue) || 0,
+          startDate: form.startDate ? form.startDate : undefined,
+          endDate: form.endDate ? form.endDate : undefined,
+          status: form.status,
+        })
+        setProjects(prev => [{ ...project, status: project.status as ProjectStatus, expenses: [], clientTranches: [] }, ...prev])
+        setShowForm(false)
+        setForm({
+          title: '', clientName: '', clientNIF: '', address: '',
+          contractValue: '', startDate: '', endDate: '', status: 'EM_PLANEAMENTO' as ProjectStatus,
+        })
+        router.push(`/obras/${project.id}`)
+      } catch (err: any) {
+        console.error('Erro ao criar obra:', err)
+        alert('Erro ao criar obra: ' + (err?.message || 'Verifique as datas ou campos preenchidos.'))
+      }
     })
   }
 
@@ -233,7 +243,7 @@ export function ObrasClient({ projects: initial }: { projects: Project[] }) {
                   </div>
                   <button
                     onClick={e => handleDelete(project.id, e)}
-                    className="opacity-80 sm:opacity-0 sm:group-hover:opacity-100 text-slate-400 hover:text-red-600 transition-all p-1"
+                    className="text-slate-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded-[3px] border border-slate-200 transition-all flex items-center justify-center flex-shrink-0"
                     title="Eliminar obra"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -355,6 +365,8 @@ export function ObrasClient({ projects: initial }: { projects: Project[] }) {
                     type={field.type}
                     placeholder={field.placeholder}
                     required={field.label.includes('*')}
+                    min={field.type === 'date' ? '2000-01-01' : undefined}
+                    max={field.type === 'date' ? '2099-12-31' : undefined}
                     value={(form as Record<string, string>)[field.key]}
                     onChange={e => setForm(p => ({ ...p, [field.key]: e.target.value }))}
                     className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-white border border-slate-300 focus:outline-none focus:border-blue-600"
