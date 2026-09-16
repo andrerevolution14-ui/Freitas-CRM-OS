@@ -36,7 +36,7 @@ export function Sidebar() {
       className="hidden md:flex fixed left-0 top-0 h-screen w-[220px] flex-col z-40"
       style={{
         background: 'linear-gradient(180deg, #0b0d15 0%, #080a11 100%)',
-        borderRight: '1px solid rgba(255,255,255,0.055)',
+        borderRight: '1px solid rgba(255,255,255,0.06)',
       }}
     >
       {/* Logo */}
@@ -71,7 +71,7 @@ export function Sidebar() {
               href={item.href}
               prefetch={true}
               className={cn(
-                'flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 group',
+                'flex items-center gap-2.5 px-3 py-2 rounded-[4px] text-[13px] font-medium transition-all duration-150 group',
                 isActive
                   ? 'sidebar-item-active text-white'
                   : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
@@ -108,7 +108,7 @@ export function Sidebar() {
         </div>
         <button
           onClick={() => signOut({ callbackUrl: '/login' })}
-          className="flex items-center gap-2.5 px-3 py-2 w-full rounded-lg text-[12px] text-slate-500 hover:text-red-400 hover:bg-red-500/8 transition-all duration-150"
+          className="flex items-center gap-2.5 px-3 py-2 w-full rounded-[4px] text-[12px] font-medium text-slate-500 hover:text-red-400 hover:bg-red-500/8 transition-all duration-150"
         >
           <LogOut className="w-3.5 h-3.5" />
           Terminar Sessão

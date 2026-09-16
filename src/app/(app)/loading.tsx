@@ -7,29 +7,29 @@ export default function AppLoading() {
       {/* Header skeleton */}
       <div className="flex items-center justify-between gap-4">
         <div className="space-y-2">
-          <div className="h-4 w-32 bg-white/10 rounded-md" />
-          <div className="h-8 w-48 bg-white/10 rounded-lg" />
+          <div className="h-4 w-32 bg-slate-200 rounded-[4px]" />
+          <div className="h-8 w-48 bg-slate-200 rounded-[4px]" />
         </div>
-        <div className="h-9 w-28 bg-white/10 rounded-xl" />
+        <div className="h-9 w-28 bg-slate-200 rounded-[4px]" />
       </div>
 
       {/* Hero card skeleton */}
-      <div className="h-36 rounded-2xl bg-white/[0.04] border border-white/[0.06]" />
+      <div className="h-36 rounded-[4px] bg-white border border-slate-200 shadow-xs" />
 
       {/* Grid skeleton */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="h-28 rounded-xl bg-white/[0.04] border border-white/[0.06] p-4 space-y-3">
-            <div className="w-8 h-8 rounded-lg bg-white/10" />
-            <div className="h-6 w-24 bg-white/10 rounded" />
+          <div key={i} className="h-28 rounded-[4px] bg-white border border-slate-200 shadow-xs p-4 space-y-3">
+            <div className="w-8 h-8 rounded-[4px] bg-slate-200" />
+            <div className="h-6 w-24 bg-slate-200 rounded-[4px]" />
           </div>
         ))}
       </div>
 
       {/* Content skeleton */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-2 h-72 rounded-2xl bg-white/[0.04] border border-white/[0.06]" />
-        <div className="h-72 rounded-2xl bg-white/[0.04] border border-white/[0.06]" />
+        <div className="lg:col-span-2 h-72 rounded-[4px] bg-white border border-slate-200 shadow-xs" />
+        <div className="h-72 rounded-[4px] bg-white border border-slate-200 shadow-xs" />
       </div>
     </div>
   )

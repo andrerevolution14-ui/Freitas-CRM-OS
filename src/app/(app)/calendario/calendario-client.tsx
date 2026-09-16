@@ -15,6 +15,7 @@ import {
 } from 'lucide-react'
 import { cn, formatCurrency } from '@/lib/utils'
 import { createNote } from '@/server/actions/notes'
+import { Modal } from '@/components/ui/modal'
 
 interface CalProject {
   id: string
@@ -145,48 +146,48 @@ export function CalendarioClient({ projects, tranches, leads }: Props) {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="pulse-dot w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+            <span className="pulse-dot w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
             <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">Agenda</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            {MONTHS[viewDate.getMonth()]} <span className="text-slate-500 font-light">{viewDate.getFullYear()}</span>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            {MONTHS[viewDate.getMonth()]} <span className="text-slate-400 font-light">{viewDate.getFullYear()}</span>
           </h1>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={() => { if (selectedDay) setShowCreateModal(true) }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 transition-all ios-interactive shadow-sm shadow-blue-600/20"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] text-xs font-bold uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-sm shadow-blue-600/20"
           >
             <Plus className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Adicionar Evento</span>
             <span className="sm:hidden">Evento</span>
           </button>
-          <button onClick={goToday} className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 hover:text-white bg-white/[0.06] hover:bg-white/[0.09] transition-all border border-white/[0.06]">
+          <button onClick={goToday} className="px-3 py-1.5 rounded-[4px] text-xs font-semibold uppercase text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition-all border border-slate-200">
             Hoje
           </button>
-          <button onClick={prevMonth} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06] transition-all">
+          <button onClick={prevMonth} className="p-1.5 rounded-[4px] text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-all border border-slate-200">
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <button onClick={nextMonth} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.06] transition-all">
+          <button onClick={nextMonth} className="p-1.5 rounded-[4px] text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-all border border-slate-200">
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
       </div>
 
-      {/* Legend — compact */}
-      <div className="glass-card px-3 py-2 flex items-center gap-3 flex-wrap text-[10px] sm:text-xs overflow-x-auto">
+      {/* Legend — compact rectangular */}
+      <div className="bg-white border border-slate-200 shadow-sm rounded-[4px] px-3 py-2 flex items-center gap-3 flex-wrap text-[10px] sm:text-xs overflow-x-auto">
         {[
-          { color:'#3b82f6', label:'Início Obra' },
-          { color:'#8b5cf6', label:'Fim Previsto' },
-          { color:'#f59e0b', label:'Tranche Pend.' },
-          { color:'#10b981', label:'Tranche Paga' },
-          { color:'#ef4444', label:'Em Atraso' },
-          { color:'#f59e0b', label:'📌 Nota/Evento' },
+          { color:'#2563eb', label:'Início Obra' },
+          { color:'#7c3aed', label:'Fim Previsto' },
+          { color:'#d97706', label:'Tranche Pend.' },
+          { color:'#059669', label:'Tranche Paga' },
+          { color:'#dc2626', label:'Em Atraso' },
+          { color:'#d97706', label:'📌 Nota/Evento' },
         ].map(l => (
           <span key={l.label} className="flex items-center gap-1 whitespace-nowrap">
-            <span className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background:l.color }} />
-            <span className="text-slate-400">{l.label}</span>
+            <span className="w-2.5 h-2.5 rounded-[2px] flex-shrink-0" style={{ background:l.color }} />
+            <span className="text-slate-600 font-medium">{l.label}</span>
           </span>
         ))}
       </div>
@@ -194,7 +195,7 @@ export function CalendarioClient({ projects, tranches, leads }: Props) {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
 
         {/* ─── Calendar Grid ─── */}
-        <div className="lg:col-span-3 glass-card p-2 sm:p-3">
+        <div className="lg:col-span-3 bg-white border border-slate-200 shadow-sm rounded-[4px] p-2 sm:p-3">
           {/* Day headers */}
           <div className="grid grid-cols-7 mb-1">
             {DAYS_FULL.map((d, i) => (
@@ -217,15 +218,15 @@ export function CalendarioClient({ projects, tranches, leads }: Props) {
                   key={cell.key}
                   onClick={() => setSelectedDay(cell.key)}
                   className={cn(
-                    'cal-day p-1 text-left relative',
-                    isSelected ? 'bg-blue-500/10 border-blue-500/30' : 'border-transparent'
+                    'cal-day p-1 text-left relative rounded-[4px] border',
+                    isSelected ? 'bg-blue-50 border-blue-500 ring-1 ring-blue-500/30' : 'border-slate-200 hover:border-slate-300'
                   )}
                 >
                   {/* Date number */}
                   <div
                     className={cn(
-                      'w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full text-[10px] sm:text-xs font-semibold mb-0.5',
-                      isToday ? 'bg-blue-500 text-white' : 'text-slate-400'
+                      'w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-[3px] text-[10px] sm:text-xs font-bold mb-0.5',
+                      isToday ? 'bg-blue-600 text-white' : 'text-slate-700'
                     )}
                   >
                     {cell.date.getDate()}
@@ -235,15 +236,15 @@ export function CalendarioClient({ projects, tranches, leads }: Props) {
                     {events.slice(0,2).map(ev => (
                       <div
                         key={ev.id}
-                        className="cal-event"
-                        style={{ background: ev.color+'20', color: ev.color }}
+                        className="cal-event rounded-[2px]"
+                        style={{ background: ev.color+'18', color: ev.color }}
                       >
                         <span className="hidden sm:inline">{ev.label}</span>
                         <span className="sm:hidden">●</span>
                       </div>
                     ))}
                     {events.length > 2 && (
-                      <div className="text-[8px] sm:text-[9px] text-slate-500 font-semibold pl-0.5">+{events.length-2}</div>
+                      <div className="text-[8px] sm:text-[9px] text-slate-400 font-semibold pl-0.5">+{events.length-2}</div>
                     )}
                   </div>
                 </button>
@@ -253,16 +254,16 @@ export function CalendarioClient({ projects, tranches, leads }: Props) {
         </div>
 
         {/* ─── Day Panel ─── */}
-        <div className="glass-card p-4 flex flex-col gap-3 h-fit">
+        <div className="glass-card p-4 flex flex-col gap-3 h-fit shadow-sm">
           <div className="flex items-start justify-between gap-2">
             <div>
               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Dia selecionado</p>
-              <p className="text-sm font-bold text-white mt-0.5 capitalize">{selectedDateLabel || '—'}</p>
+              <p className="text-sm font-bold text-slate-900 mt-0.5 capitalize">{selectedDateLabel || '—'}</p>
             </div>
             {selectedDay && (
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="flex-shrink-0 p-1.5 rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 transition-all"
+                className="flex-shrink-0 p-1.5 rounded bg-blue-50 text-blue-600 hover:bg-blue-100 transition-all border border-blue-200"
                 title="Adicionar evento neste dia"
               >
                 <Plus className="w-3.5 h-3.5" />
@@ -271,8 +272,8 @@ export function CalendarioClient({ projects, tranches, leads }: Props) {
           </div>
 
           {selectedEvents.length === 0 ? (
-            <div className="text-center py-6 text-xs text-slate-600">
-              <CalendarDays className="w-7 h-7 mx-auto mb-2 opacity-20" />
+            <div className="text-center py-6 text-xs text-slate-400">
+              <CalendarDays className="w-7 h-7 mx-auto mb-2 opacity-30" />
               Sem eventos
             </div>
           ) : (
@@ -282,22 +283,22 @@ export function CalendarioClient({ projects, tranches, leads }: Props) {
                   <Link
                     key={ev.id}
                     href={ev.href}
-                    className="flex items-start gap-2 p-2.5 rounded-lg hover:bg-white/[0.04] transition-all group"
+                    className="flex items-start gap-2 p-2.5 rounded hover:bg-slate-50 border border-slate-200 transition-all group"
                     style={{ borderLeft: `3px solid ${ev.color}` }}
                   >
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-white truncate group-hover:text-blue-300 transition-colors">{ev.label}</p>
+                      <p className="text-xs font-bold text-slate-900 truncate group-hover:text-blue-600 transition-colors">{ev.label}</p>
                       {ev.subLabel && <p className="text-[10px] text-slate-500 mt-0.5">{ev.subLabel}</p>}
                     </div>
-                    <ChevronRight className="w-3 h-3 text-slate-600 group-hover:text-white flex-shrink-0 mt-0.5" />
+                    <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-slate-800 flex-shrink-0 mt-0.5" />
                   </Link>
                 ) : (
                   <div
                     key={ev.id}
-                    className="flex items-start gap-2 p-2.5 rounded-lg"
+                    className="flex items-start gap-2 p-2.5 rounded border border-slate-200 bg-slate-50"
                     style={{ borderLeft: `3px solid ${ev.color}` }}
                   >
-                    <p className="text-xs font-semibold text-white truncate">{ev.label}</p>
+                    <p className="text-xs font-semibold text-slate-900 truncate">{ev.label}</p>
                   </div>
                 )
               ))}
@@ -305,124 +306,114 @@ export function CalendarioClient({ projects, tranches, leads }: Props) {
           )}
 
           {/* Upcoming tranches */}
-          <div className="mt-1 pt-3" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-            <p className="text-[9px] font-bold text-slate-600 uppercase tracking-widest mb-2">Próximas Tranches</p>
+          <div className="mt-1 pt-3 border-t border-slate-100">
+            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mb-2">Próximas Tranches</p>
             {tranches
               .filter(t => t.status !== 'PAGO' && new Date(t.dueDate) >= today)
               .slice(0, 4)
               .map(t => (
                 <Link key={t.id} href={`/obras/${t.projectId}`}
-                  className="flex items-center justify-between py-1.5 px-1 hover:bg-white/[0.03] rounded transition-all group"
+                  className="flex items-center justify-between py-1.5 px-1 hover:bg-slate-50 rounded transition-all group"
                 >
                   <div className="min-w-0">
-                    <p className="text-[10px] font-semibold text-slate-300 truncate max-w-[120px] group-hover:text-white transition-colors">{t.project.title}</p>
-                    <p className="text-[9px] text-slate-600">{new Date(t.dueDate).toLocaleDateString('pt-PT')}</p>
+                    <p className="text-[10px] font-semibold text-slate-700 truncate max-w-[120px] group-hover:text-blue-600 transition-colors">{t.project.title}</p>
+                    <p className="text-[9px] text-slate-400">{new Date(t.dueDate).toLocaleDateString('pt-PT')}</p>
                   </div>
-                  <span className="text-[10px] font-bold ml-1 flex-shrink-0" style={{ color: t.status==='ATRASADO'?'#ef4444':'#f59e0b' }}>
+                  <span className="text-[10px] font-bold ml-1 flex-shrink-0" style={{ color: t.status==='ATRASADO'?'#dc2626':'#d97706' }}>
                     {formatCurrency(t.amount)}
                   </span>
                 </Link>
               ))}
             {tranches.filter(t => t.status!=='PAGO' && new Date(t.dueDate)>=today).length === 0 && (
-              <p className="text-[10px] text-slate-600 text-center py-2">Sem tranches pendentes</p>
+              <p className="text-[10px] text-slate-400 text-center py-2">Sem tranches pendentes</p>
             )}
           </div>
         </div>
       </div>
 
-      {/* ─── Event Creation Modal ─── */}
-      {showCreateModal && (
-        <div className="modal-overlay" onClick={(e) => { if (e.target===e.currentTarget) setShowCreateModal(false) }}>
-          <div className="modal-box p-5 sm:p-6">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Nova Nota / Evento</p>
-                <p className="text-base font-bold text-white mt-0.5 capitalize">{selectedDateLabel}</p>
-              </div>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-white/[0.06] transition-all"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateEvent} className="space-y-3">
-              <div>
-                <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Título</label>
-                <input
-                  placeholder="Ex: Reunião com cliente, Compra de material..."
-                  value={noteForm.title}
-                  onChange={e => setNoteForm(p => ({ ...p, title: e.target.value }))}
-                  className={inputClass}
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Descrição <span className="text-red-400">*</span></label>
-                <textarea
-                  required
-                  placeholder="Detalhes do evento ou nota..."
-                  value={noteForm.content}
-                  onChange={e => setNoteForm(p => ({ ...p, content: e.target.value }))}
-                  rows={3}
-                  className={`${inputClass} resize-none`}
-                  autoFocus
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
-                    <HardHat className="w-3 h-3 inline mr-1 text-blue-400" />Obra
-                  </label>
-                  <select
-                    value={noteForm.projectId}
-                    onChange={e => setNoteForm(p => ({ ...p, projectId: e.target.value, leadId:'' }))}
-                    className={inputClass}
-                  >
-                    <option value="">Sem associação</option>
-                    {projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
-                    <FolderKanban className="w-3 h-3 inline mr-1 text-purple-400" />Lead
-                  </label>
-                  <select
-                    value={noteForm.leadId}
-                    onChange={e => setNoteForm(p => ({ ...p, leadId: e.target.value, projectId:'' }))}
-                    className={inputClass}
-                  >
-                    <option value="">Sem associação</option>
-                    {leads.map(l => <option key={l.id} value={l.id}>{l.clientName}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="flex-1 py-2.5 rounded-lg text-sm font-medium text-slate-400 border border-white/[0.08] hover:text-white hover:border-white/[0.15] transition-all"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isPending || !noteForm.content.trim()}
-                  className="flex-1 py-2.5 rounded-lg text-sm font-semibold text-white ios-interactive flex items-center justify-center gap-2 disabled:opacity-50"
-                  style={{ background: 'linear-gradient(135deg, #3b82f6, #6366f1)' }}
-                >
-                  {isPending ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />A guardar...</> : <>
-                    <StickyNote className="w-3.5 h-3.5" />Guardar Evento</>}
-                </button>
-              </div>
-            </form>
+      {/* ─── Event Creation Modal (Portal) ─── */}
+      <Modal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title="Nova Nota / Evento"
+        subtitle={selectedDateLabel ? selectedDateLabel.toUpperCase() : undefined}
+        icon={<StickyNote className="w-5 h-5 text-amber-600" />}
+        maxWidth="md"
+      >
+        <form onSubmit={handleCreateEvent} className="space-y-3.5">
+          <div>
+            <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Título (Opcional)</label>
+            <input
+              placeholder="Ex: Reunião com cliente, Entrega de material..."
+              value={noteForm.title}
+              onChange={e => setNoteForm(p => ({ ...p, title: e.target.value }))}
+              className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-white border border-slate-300 focus:outline-none focus:border-blue-600"
+            />
           </div>
-        </div>
-      )}
+
+          <div>
+            <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+              Descrição <span className="text-red-600">*</span>
+            </label>
+            <textarea
+              required
+              placeholder="Detalhes do evento, notas de visita ou lembretes..."
+              value={noteForm.content}
+              onChange={e => setNoteForm(p => ({ ...p, content: e.target.value }))}
+              rows={3}
+              className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-white border border-slate-300 resize-none focus:outline-none focus:border-blue-600"
+              autoFocus
+            />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                <HardHat className="w-3.5 h-3.5 inline mr-1 text-blue-600" />Obra
+              </label>
+              <select
+                value={noteForm.projectId}
+                onChange={e => setNoteForm(p => ({ ...p, projectId: e.target.value, leadId:'' }))}
+                className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 bg-white border border-slate-300 focus:outline-none focus:border-blue-600"
+              >
+                <option value="">Sem associação</option>
+                {projects.map(p => <option key={p.id} value={p.id}>{p.title}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                <FolderKanban className="w-3.5 h-3.5 inline mr-1 text-purple-600" />Lead / CRM
+              </label>
+              <select
+                value={noteForm.leadId}
+                onChange={e => setNoteForm(p => ({ ...p, leadId: e.target.value, projectId:'' }))}
+                className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 bg-white border border-slate-300 focus:outline-none focus:border-blue-600"
+              >
+                <option value="">Sem associação</option>
+                {leads.map(l => <option key={l.id} value={l.id}>{l.clientName}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex gap-2.5 pt-3 border-t border-slate-200">
+            <button
+              type="button"
+              onClick={() => setShowCreateModal(false)}
+              className="flex-1 py-2.5 rounded-[4px] text-xs font-semibold text-slate-600 hover:text-slate-900 border border-slate-300 hover:bg-slate-100 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={isPending || !noteForm.content.trim()}
+              className="flex-1 py-2.5 rounded-[4px] text-xs font-bold uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-700 flex items-center justify-center gap-2 disabled:opacity-50 transition-all shadow-md shadow-blue-600/20"
+            >
+              {isPending ? <><Loader2 className="w-3.5 h-3.5 animate-spin" />A guardar...</> : <>
+                <StickyNote className="w-3.5 h-3.5" />Guardar Evento</>}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }

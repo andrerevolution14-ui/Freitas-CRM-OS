@@ -300,7 +300,7 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
               Freitas OS · Gestão de Obras
             </span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mt-0.5">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mt-0.5">
             Dashboard
           </h1>
         </div>
@@ -327,36 +327,36 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
       {/* Quick Hub / Shortcuts Bar - Compact on mobile */}
       <div className="glass-card p-2 sm:p-2.5 flex items-center justify-between gap-2 overflow-x-auto w-full">
         <div className="flex items-center gap-1 sm:gap-1.5 flex-nowrap">
-          <span className="text-[11px] font-semibold text-slate-400 px-1.5 hidden lg:flex items-center gap-1 whitespace-nowrap">
-            <Sparkles className="w-3.5 h-3.5 text-blue-400" />
+          <span className="text-[11px] font-semibold text-slate-500 px-1.5 hidden lg:flex items-center gap-1 whitespace-nowrap">
+            <Sparkles className="w-3.5 h-3.5 text-blue-600" />
             Atalhos:
           </span>
           <Link
             href="/obras"
-            className="flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-medium text-slate-200 hover:text-white bg-white/5 hover:bg-white/10 transition-all whitespace-nowrap"
+            className="flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-[4px] text-[11px] sm:text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition-all whitespace-nowrap"
           >
-            <HardHat className="w-3 h-3 text-blue-400" />
+            <HardHat className="w-3 h-3 text-blue-600" />
             <span>Obras ({stats.projectCount})</span>
           </Link>
           <Link
             href="/leads"
-            className="flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-medium text-slate-200 hover:text-white bg-white/5 hover:bg-white/10 transition-all whitespace-nowrap"
+            className="flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-[4px] text-[11px] sm:text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition-all whitespace-nowrap"
           >
-            <FolderKanban className="w-3 h-3 text-purple-400" />
+            <FolderKanban className="w-3 h-3 text-purple-600" />
             <span>CRM ({leads.length})</span>
           </Link>
           <Link
             href="/subempreiteiros"
-            className="flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-medium text-slate-200 hover:text-white bg-white/5 hover:bg-white/10 transition-all whitespace-nowrap"
+            className="flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-[4px] text-[11px] sm:text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition-all whitespace-nowrap"
           >
-            <Users className="w-3 h-3 text-yellow-400" />
+            <Users className="w-3 h-3 text-amber-600" />
             <span>Equipa</span>
           </Link>
           <Link
             href="/notas"
-            className="flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-medium text-slate-200 hover:text-white bg-white/5 hover:bg-white/10 transition-all whitespace-nowrap"
+            className="flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-[4px] text-[11px] sm:text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition-all whitespace-nowrap"
           >
-            <StickyNote className="w-3 h-3 text-amber-400" />
+            <StickyNote className="w-3 h-3 text-amber-600" />
             <span>Notas</span>
           </Link>
         </div>
@@ -364,14 +364,14 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
         <div className="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
           <Link
             href="/leads"
-            className="flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 transition-all whitespace-nowrap"
+            className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-[4px] text-[11px] sm:text-xs font-bold uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-700 transition-all whitespace-nowrap shadow-sm"
           >
             <Plus className="w-3 h-3" />
             <span>+ Lead</span>
           </Link>
           <Link
             href="/obras"
-            className="flex items-center gap-1 px-2 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-95 transition-all whitespace-nowrap"
+            className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-[4px] text-[11px] sm:text-xs font-bold uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-700 transition-all whitespace-nowrap shadow-sm"
           >
             <Plus className="w-3 h-3" />
             <span>+ Obra</span>
@@ -383,22 +383,22 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
       {filteredData.overdueCount > 0 && (
         <Link
           href="/obras"
-          className="flex items-center justify-between p-3.5 sm:p-4 rounded-2xl border border-red-500/30 bg-red-500/10 hover:bg-red-500/15 transition-all group ios-interactive"
+          className="flex items-center justify-between p-3.5 sm:p-4 rounded-[4px] border border-red-200 bg-red-50 hover:bg-red-100 transition-all group ios-interactive"
         >
           <div className="flex items-center gap-2.5 sm:gap-3">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-red-500/20 flex items-center justify-center flex-shrink-0">
-              <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-red-400" />
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-[4px] bg-red-100 flex items-center justify-center flex-shrink-0">
+              <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
             </div>
             <div>
-              <p className="text-xs sm:text-sm font-semibold text-white">
+              <p className="text-xs sm:text-sm font-semibold text-red-900">
                 {filteredData.overdueCount} pagamentos pendentes fora do prazo!
               </p>
-              <p className="text-[11px] sm:text-xs text-red-300/80 mt-0.5">
+              <p className="text-[11px] sm:text-xs text-red-700 mt-0.5">
                 Clica aqui para abrir as Obras e regularizar os valores em atraso.
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1 text-xs font-medium text-red-300 group-hover:text-white transition-colors flex-shrink-0 pl-2">
+          <div className="flex items-center gap-1 text-xs font-semibold text-red-600 group-hover:text-red-800 transition-colors flex-shrink-0 pl-2">
             <span className="hidden sm:inline">Resolver</span>
             <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
           </div>
@@ -414,19 +414,19 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
         >
           <div>
             <div className="flex items-start justify-between mb-2">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-blue-500/15 border border-blue-500/25 flex items-center justify-center">
-                <Wallet className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-[4px] bg-blue-50 border border-blue-200 flex items-center justify-center">
+                <Wallet className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
               </div>
-              <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-blue-400 transition-colors" />
+              <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 transition-colors" />
             </div>
-            <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-white tracking-tight">
+            <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">
               {formatCurrency(filteredData.revenue)}
             </p>
-            <p className="text-[11px] sm:text-xs font-medium text-slate-400 mt-1">Faturação Total</p>
+            <p className="text-[11px] sm:text-xs font-medium text-slate-500 mt-1">Faturação Total</p>
           </div>
-          <div className="mt-3 pt-2.5 border-t border-white/[0.06] flex items-center justify-between text-[10px] sm:text-xs text-slate-500">
+          <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[10px] sm:text-xs text-slate-500">
             <span>{filteredData.totalProjects} obras</span>
-            <span className="text-blue-400 font-medium">Ver →</span>
+            <span className="text-blue-600 font-medium">Ver →</span>
           </div>
         </Link>
 
@@ -437,17 +437,17 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
         >
           <div>
             <div className="flex items-start justify-between mb-2">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center">
-                <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-[4px] bg-amber-50 border border-amber-200 flex items-center justify-center">
+                <TrendingDown className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
               </div>
-              <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-amber-400 transition-colors" />
+              <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-amber-600 transition-colors" />
             </div>
-            <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-white tracking-tight">
+            <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">
               {formatCurrency(filteredData.expenses)}
             </p>
-            <p className="text-[11px] sm:text-xs font-medium text-slate-400 mt-1">Custos Totais</p>
+            <p className="text-[11px] sm:text-xs font-medium text-slate-500 mt-1">Custos Totais</p>
           </div>
-          <div className="mt-3 pt-2.5 border-t border-white/[0.06] flex items-center justify-between text-[10px] sm:text-xs text-slate-500">
+          <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[10px] sm:text-xs text-slate-500">
             <span>Mat. + Sub.</span>
             <span className="text-amber-400 font-medium">Ver →</span>
           </div>
@@ -462,24 +462,24 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
             <div className="flex items-start justify-between mb-2">
               <div
                 className={cn(
-                  'w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center border',
+                  'w-9 h-9 sm:w-10 sm:h-10 rounded-[4px] flex items-center justify-center border',
                   filteredData.profit >= 0
-                    ? 'bg-emerald-500/15 border-emerald-500/25 text-emerald-400'
-                    : 'bg-red-500/15 border-red-500/25 text-red-400'
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                    : 'bg-red-50 border-red-200 text-red-700'
                 )}
               >
                 <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
-              <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-400 transition-colors" />
+              <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-emerald-600 transition-colors" />
             </div>
-            <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-white tracking-tight">
+            <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">
               {formatCurrency(filteredData.profit)}
             </p>
-            <p className="text-[11px] sm:text-xs font-medium text-slate-400 mt-1">Lucro Bruto</p>
+            <p className="text-[11px] sm:text-xs font-medium text-slate-500 mt-1">Lucro Bruto</p>
           </div>
-          <div className="mt-3 pt-2.5 border-t border-white/[0.06] flex items-center justify-between text-[10px] sm:text-xs text-slate-500">
+          <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[10px] sm:text-xs text-slate-500">
             <span>Rentabilidade</span>
-            <span className={cn('font-semibold', filteredData.profit >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+            <span className={cn('font-semibold', filteredData.profit >= 0 ? 'text-emerald-700' : 'text-red-700')}>
               {filteredData.profit >= 0 ? '+ Lucro' : '- Défice'}
             </span>
           </div>
@@ -492,47 +492,47 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
         >
           <div>
             <div className="flex items-start justify-between mb-2">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-purple-500/15 border border-purple-500/25 flex items-center justify-center">
-                <HardHat className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400" />
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-[4px] bg-purple-50 border border-purple-200 flex items-center justify-center">
+                <HardHat className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
               </div>
-              <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-purple-400 transition-colors" />
+              <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-purple-600 transition-colors" />
             </div>
-            <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-white tracking-tight">
+            <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">
               {filteredData.activeProjects}
             </p>
-            <p className="text-[11px] sm:text-xs font-medium text-slate-400 mt-1">Obras em Execução</p>
+            <p className="text-[11px] sm:text-xs font-medium text-slate-500 mt-1">Obras em Execução</p>
           </div>
-          <div className="mt-3 pt-2.5 border-t border-white/[0.06] flex items-center justify-between text-[10px] sm:text-xs text-slate-500">
+          <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[10px] sm:text-xs text-slate-500">
             <span>Em estaleiro</span>
-            <span className="text-purple-400 font-medium">Ativo →</span>
+            <span className="text-purple-600 font-medium">Ativo →</span>
           </div>
         </Link>
       </div>
 
       {/* PROMINENTE E NO TOPO: NOTAS RÁPIDAS + MARGEM GLOBAL */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* WIDGET DE NOTAS RÁPIDAS (COLOCADO NO TOPO DO DASHBOARD COMO SOLICITADO) */}
-        <div className="lg:col-span-2 glass-card p-5 sm:p-6 flex flex-col justify-between border-amber-500/20 bg-amber-500/[0.02]">
+        {/* WIDGET DE NOTAS RÁPIDAS */}
+        <div className="lg:col-span-2 glass-card p-5 sm:p-6 flex flex-col justify-between border-amber-200 bg-amber-50/20">
           <div>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center flex-shrink-0">
-                  <StickyNote className="w-4 h-4 text-amber-400" />
+                <div className="w-9 h-9 rounded-[4px] bg-amber-50 border border-amber-200 flex items-center justify-center flex-shrink-0">
+                  <StickyNote className="w-4 h-4 text-amber-600" />
                 </div>
                 <div>
-                  <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
                     Notas Rápidas do Estaleiro
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/25">
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-[3px] bg-amber-100 text-amber-800 border border-amber-200">
                       Prioridade
                     </span>
                   </h3>
-                  <p className="text-[11px] text-slate-400">Apontamentos imediatos, recados e materiais a encomendar</p>
+                  <p className="text-[11px] text-slate-500">Apontamentos imediatos, recados e materiais a encomendar</p>
                 </div>
               </div>
 
               <Link
                 href="/notas"
-                className="text-xs font-semibold text-amber-400 hover:text-amber-300 flex items-center gap-1 transition-colors flex-shrink-0"
+                className="text-xs font-semibold text-amber-700 hover:text-amber-900 flex items-center gap-1 transition-colors flex-shrink-0"
               >
                 Ver Todas ({notes.length}) <ChevronRight className="w-3.5 h-3.5" />
               </Link>
@@ -543,43 +543,43 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
               {!isAddingNote ? (
                 <button
                   onClick={() => setIsAddingNote(true)}
-                  className="w-full py-2.5 px-3.5 rounded-xl text-xs font-semibold text-slate-200 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center gap-2 transition-all ios-interactive"
+                  className="w-full py-2.5 px-3.5 rounded-[4px] text-xs font-semibold text-slate-700 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-300 flex items-center justify-center gap-2 transition-all ios-interactive shadow-xs"
                 >
-                  <Plus className="w-4 h-4 text-amber-400" />
+                  <Plus className="w-4 h-4 text-amber-600" />
                   + Escrever Nova Nota Imediata Aqui
                 </button>
               ) : (
                 <form
                   onSubmit={handleCreateNote}
-                  className="space-y-2 p-3.5 rounded-2xl bg-[#121624] border border-amber-500/40 shadow-2xl animate-fade-in"
+                  className="space-y-2 p-3.5 rounded-[4px] bg-white border border-amber-300 shadow-lg animate-fade-in"
                 >
                   <input
                     type="text"
                     placeholder="Título da nota (ex: Ligar ao serralheiro, Faltam azulejos...)"
                     value={noteTitle}
                     onChange={(e) => setNoteTitle(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl text-xs text-white placeholder-slate-500 bg-[#191e30] border border-white/10 focus:outline-none focus:border-amber-500"
+                    className="w-full px-3 py-2 rounded-[4px] text-xs text-slate-900 placeholder-slate-400 bg-white border border-slate-300 focus:outline-none focus:border-amber-600"
                   />
                   <textarea
                     placeholder="Escreve aqui o apontamento..."
                     value={noteContent}
                     onChange={(e) => setNoteContent(e.target.value)}
                     rows={2}
-                    className="w-full px-3 py-2 rounded-xl text-xs text-white placeholder-slate-500 bg-[#191e30] border border-white/10 resize-none focus:outline-none focus:border-amber-500"
+                    className="w-full px-3 py-2 rounded-[4px] text-xs text-slate-900 placeholder-slate-400 bg-white border border-slate-300 resize-none focus:outline-none focus:border-amber-600"
                     autoFocus
                   />
                   <div className="flex items-center justify-end gap-2 pt-1">
                     <button
                       type="button"
                       onClick={() => setIsAddingNote(false)}
-                      className="px-3 py-1.5 text-xs text-slate-400 hover:text-white"
+                      className="px-3 py-1.5 text-xs text-slate-600 hover:text-slate-900"
                     >
                       Cancelar
                     </button>
                     <button
                       type="submit"
                       disabled={isPending || !noteContent.trim()}
-                      className="px-4 py-1.5 rounded-xl text-xs font-semibold text-white bg-amber-600 hover:bg-amber-500 shadow-md shadow-amber-600/20 transition-all disabled:opacity-50"
+                      className="px-4 py-1.5 rounded-[4px] text-xs font-bold uppercase tracking-wider text-white bg-amber-600 hover:bg-amber-700 shadow-md shadow-amber-600/20 transition-all disabled:opacity-50"
                     >
                       {isPending ? 'A guardar...' : 'Guardar Nota'}
                     </button>
@@ -588,34 +588,34 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
               )}
             </div>
 
-            {/* Recent Notes Grid (Responsive: 1 col on mobile, 2 cols on tablet/desktop) */}
+            {/* Recent Notes Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
               {notes.slice(0, 4).map((note) => {
                 const author = note.createdBy
                 return (
                   <div
                     key={note.id}
-                    className="p-3 sm:p-3.5 rounded-xl bg-[#121624] border border-white/[0.08] hover:border-amber-500/30 transition-all flex flex-col justify-between min-w-0 w-full"
+                    className="p-3 sm:p-3.5 rounded-[4px] bg-white border border-slate-200 hover:border-amber-400 transition-all flex flex-col justify-between min-w-0 w-full shadow-xs"
                   >
                     <div>
                       <div className="flex items-start justify-between gap-2 mb-1">
-                        <p className="text-xs font-bold text-white truncate min-w-0 flex-1">
+                        <p className="text-xs font-bold text-slate-900 truncate min-w-0 flex-1">
                           {note.title || 'Nota sem título'}
                         </p>
                         <button
                           onClick={() => handleDeleteNote(note.id)}
-                          className="text-slate-500 hover:text-red-400 p-1 -mr-1 -mt-1 transition-colors flex-shrink-0"
+                          className="text-slate-400 hover:text-red-600 p-1 -mr-1 -mt-1 transition-colors flex-shrink-0"
                           title="Eliminar nota"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
-                      <p className="text-xs text-slate-300 leading-relaxed break-words line-clamp-3">
+                      <p className="text-xs text-slate-600 leading-relaxed break-words line-clamp-3">
                         {note.content}
                       </p>
                     </div>
 
-                    <div className="mt-2.5 pt-2 border-t border-white/[0.06] flex flex-wrap items-center justify-between gap-1 text-[10px] text-slate-400">
+                    <div className="mt-2.5 pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-1 text-[10px] text-slate-500">
                       <div className="flex items-center gap-1.5 flex-shrink-0">
                         {author && (
                           <UserAvatar
@@ -625,13 +625,13 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
                             size={18}
                           />
                         )}
-                        <span className="font-medium text-slate-300">{author?.name?.split(' ')[0] || 'Autor'}</span>
-                        <span className="text-slate-500">· {formatDate(note.createdAt)}</span>
+                        <span className="font-semibold text-slate-700">{author?.name?.split(' ')[0] || 'Autor'}</span>
+                        <span className="text-slate-400">· {formatDate(note.createdAt)}</span>
                       </div>
                       {note.project && (
                         <Link
                           href={`/obras/${note.project.id}`}
-                          className="px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 hover:text-blue-300 truncate max-w-[120px] font-medium"
+                          className="px-1.5 py-0.5 rounded bg-blue-50 border border-blue-200 text-blue-700 hover:underline truncate max-w-[120px] font-semibold"
                         >
                           🏷️ {note.project.title}
                         </Link>
@@ -642,7 +642,7 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
               })}
 
               {notes.length === 0 && (
-                <div className="sm:col-span-2 text-center py-6 text-xs text-slate-500">
+                <div className="sm:col-span-2 text-center py-6 text-xs text-slate-400">
                   Nenhuma nota registada ainda. Escreve a primeira no botão em cima!
                 </div>
               )}
@@ -659,30 +659,30 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <BarChart3 className={cn('w-5 h-5', marginColor)} />
-                <span className="text-sm font-semibold text-white">Margem Média Global</span>
+                <span className="text-sm font-semibold text-slate-900">Margem Média Global</span>
               </div>
-              <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-white transition-transform group-hover:translate-x-1" />
+              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-800 transition-transform group-hover:translate-x-1" />
             </div>
             <div className="flex items-baseline gap-3">
               <span className={cn('text-5xl font-extrabold tracking-tight', marginColor)}>
                 {filteredData.margin.toFixed(1)}%
               </span>
-              <span className="text-xs text-slate-400">sobre faturação</span>
+              <span className="text-xs text-slate-500">sobre faturação</span>
             </div>
 
-            <div className="mt-5 h-2.5 rounded-full bg-white/10 overflow-hidden p-0.5">
+            <div className="mt-5 h-2 rounded-[2px] bg-slate-200 overflow-hidden">
               <div
-                className="h-full rounded-full transition-all duration-700 ease-out"
+                className="h-full rounded-[2px] transition-all duration-700 ease-out"
                 style={{
                   width: `${Math.min(Math.max(filteredData.margin, 0), 100)}%`,
                   background:
-                    filteredData.margin >= 25 ? '#34d399' : filteredData.margin >= 15 ? '#fbbf24' : '#f87171',
+                    filteredData.margin >= 25 ? '#10b981' : filteredData.margin >= 15 ? '#f59e0b' : '#ef4444',
                 }}
               />
             </div>
           </div>
 
-          <div className="mt-5 pt-3 border-t border-white/[0.06] flex items-center justify-between text-xs text-slate-400">
+          <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
             <span>
               {filteredData.margin >= 25
                 ? '✓ Margem Saudável (>25%)'
@@ -690,28 +690,28 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
                 ? '⚠ Margem Aceitável'
                 : '✗ Atenção aos Custos'}
             </span>
-            <span className="text-blue-400 font-medium group-hover:underline">Auditar Obras →</span>
+            <span className="text-blue-600 font-medium group-hover:underline">Auditar Obras →</span>
           </div>
         </Link>
       </div>
 
-      {/* ── CARTÃO COMPACTO: CASH FLOW REAL & CONCILIAÇÃO BANCÁRIA (ABAIXO DAS NOTAS) ── */}
-      <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-[#0c1424] via-[#0d1627] to-[#090d18] border border-emerald-500/25 p-3.5 sm:p-4 shadow-lg">
+      {/* ── CARTÃO: CASH FLOW REAL & CONCILIAÇÃO BANCÁRIA ── */}
+      <div className="relative overflow-hidden rounded-[4px] bg-white border border-emerald-300 p-3.5 sm:p-4 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 flex-shrink-0">
+            <div className="w-8 h-8 rounded-[4px] bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 flex-shrink-0">
               <Landmark className="w-4 h-4" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+                <span className="text-xs font-bold uppercase tracking-wider text-emerald-800">
                   Saldo Bancário Previsto (Cash Flow Real)
                 </span>
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-semibold text-emerald-300">
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[3px] bg-emerald-50 border border-emerald-200 text-[10px] font-semibold text-emerald-700">
                   <CheckCircle2 className="w-2.5 h-2.5" /> Conciliação Bancária
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 mt-0.5 truncate">
+              <p className="text-[11px] text-slate-500 mt-0.5 truncate">
                 Valor exato que deve constar no banco (Entradas Pagas − Saídas Pagas)
               </p>
             </div>
@@ -721,7 +721,7 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
             <span
               className={cn(
                 'text-2xl sm:text-3xl font-black tracking-tight',
-                filteredData.bankBalance >= 0 ? 'text-white' : 'text-red-400'
+                filteredData.bankBalance >= 0 ? 'text-slate-900' : 'text-red-600'
               )}
             >
               {formatCurrency(filteredData.bankBalance)}
@@ -729,7 +729,7 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
             <Link
               href="/obras"
               prefetch={true}
-              className="px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-semibold transition-all inline-flex items-center gap-1"
+              className="px-2.5 py-1.5 rounded-[4px] bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 text-xs font-semibold transition-all inline-flex items-center gap-1"
             >
               <span>Ver Tranches</span>
               <ChevronRight className="w-3.5 h-3.5" />
@@ -738,90 +738,88 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
         </div>
 
         {/* 4 Compact Breakdown Pills */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mt-3 pt-2.5 border-t border-white/[0.06] text-[11px]">
-          <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-black/30 border border-white/[0.04]">
-            <span className="text-slate-400">📥 Entradas Reais:</span>
-            <span className="font-bold text-emerald-400">+{formatCurrency(filteredData.paidReceivables)}</span>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mt-3 pt-2.5 border-t border-slate-100 text-[11px]">
+          <div className="flex items-center justify-between px-2.5 py-1.5 rounded-[4px] bg-slate-50 border border-slate-200">
+            <span className="text-slate-500">📥 Entradas Reais:</span>
+            <span className="font-bold text-emerald-700">+{formatCurrency(filteredData.paidReceivables)}</span>
           </div>
-          <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-black/30 border border-white/[0.04]">
-            <span className="text-slate-400">📤 Saídas Reais:</span>
-            <span className="font-bold text-amber-400">-{formatCurrency(filteredData.totalCashOut)}</span>
+          <div className="flex items-center justify-between px-2.5 py-1.5 rounded-[4px] bg-slate-50 border border-slate-200">
+            <span className="text-slate-500">📤 Saídas Reais:</span>
+            <span className="font-bold text-amber-700">-{formatCurrency(filteredData.totalCashOut)}</span>
           </div>
-          <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-black/30 border border-white/[0.04]">
-            <span className="text-slate-400">⏳ Prev. a Entrar:</span>
-            <span className="font-bold text-blue-400">+{formatCurrency(filteredData.pendingReceivables)}</span>
+          <div className="flex items-center justify-between px-2.5 py-1.5 rounded-[4px] bg-slate-50 border border-slate-200">
+            <span className="text-slate-500">⏳ Prev. a Entrar:</span>
+            <span className="font-bold text-blue-700">+{formatCurrency(filteredData.pendingReceivables)}</span>
           </div>
-          <div className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-black/30 border border-white/[0.04]">
-            <span className="text-slate-400">⏳ Prev. a Sair:</span>
-            <span className="font-bold text-purple-400">-{formatCurrency(filteredData.pendingPayables)}</span>
+          <div className="flex items-center justify-between px-2.5 py-1.5 rounded-[4px] bg-slate-50 border border-slate-200">
+            <span className="text-slate-500">⏳ Prev. a Sair:</span>
+            <span className="font-bold text-purple-700">-{formatCurrency(filteredData.pendingPayables)}</span>
           </div>
         </div>
       </div>
 
       {/* Middle Section: Fluxo de Caixa + Pipeline Snapshot */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Fluxo de Caixa Pendente (A Receber & A Pagar com Links Diretos) */}
+        {/* Fluxo de Caixa Pendente */}
         <div className="lg:col-span-2 glass-card p-5 sm:p-6 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-sm sm:text-base font-bold text-white">Fluxo de Caixa & Tesouraria</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Valores pendentes com atalhos diretos</p>
+                <h3 className="text-sm sm:text-base font-bold text-slate-900">Fluxo de Caixa & Tesouraria</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Valores pendentes com atalhos diretos</p>
               </div>
-              <span className="text-[11px] px-2.5 py-1 rounded-full bg-white/5 text-slate-300 font-medium border border-white/10">
+              <span className="text-[11px] px-2.5 py-1 rounded-[3px] bg-slate-100 text-slate-700 font-semibold border border-slate-200">
                 {TIME_RANGES.find((r) => r.id === timeRange)?.label}
               </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              {/* A Receber -> Clica e vai para Obras */}
               <Link
                 href="/obras"
-                className="p-4 rounded-2xl bg-emerald-500/[0.07] border border-emerald-500/20 hover:bg-emerald-500/[0.12] transition-all group ios-interactive flex flex-col justify-between"
+                className="p-4 rounded-[4px] bg-emerald-50/70 border border-emerald-200 hover:bg-emerald-100/70 transition-all group ios-interactive flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-emerald-300">A Receber (Clientes)</span>
-                    <ChevronRight className="w-4 h-4 text-emerald-400/60 group-hover:text-emerald-300 group-hover:translate-x-0.5 transition-all" />
+                    <span className="text-xs font-semibold text-emerald-800">A Receber (Clientes)</span>
+                    <ChevronRight className="w-4 h-4 text-emerald-600/60 group-hover:text-emerald-800 group-hover:translate-x-0.5 transition-all" />
                   </div>
-                  <p className="text-2xl font-extrabold text-emerald-400">
+                  <p className="text-2xl font-extrabold text-emerald-700">
                     {formatCurrency(filteredData.pendingReceivables)}
                   </p>
                 </div>
-                <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
                   Tranches de clientes pendentes →
                 </p>
               </Link>
 
-              {/* A Pagar -> Clica e vai para Subempreiteiros */}
               <Link
                 href="/subempreiteiros"
-                className="p-4 rounded-2xl bg-red-500/[0.07] border border-red-500/20 hover:bg-red-500/[0.12] transition-all group ios-interactive flex flex-col justify-between"
+                className="p-4 rounded-[4px] bg-red-50/70 border border-red-200 hover:bg-red-100/70 transition-all group ios-interactive flex flex-col justify-between"
               >
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-red-300">A Pagar (Subempreiteiros)</span>
-                    <ChevronRight className="w-4 h-4 text-red-400/60 group-hover:text-red-300 group-hover:translate-x-0.5 transition-all" />
+                    <span className="text-xs font-semibold text-red-800">A Pagar (Subempreiteiros)</span>
+                    <ChevronRight className="w-4 h-4 text-red-600/60 group-hover:text-red-800 group-hover:translate-x-0.5 transition-all" />
                   </div>
-                  <p className="text-2xl font-extrabold text-red-400">
+                  <p className="text-2xl font-extrabold text-red-700">
                     {formatCurrency(filteredData.pendingPayables)}
                   </p>
                 </div>
-                <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
                   Pagamentos a parceiros pendentes →
                 </p>
               </Link>
             </div>
           </div>
 
-          <div className="mt-4 pt-3 border-t border-white/[0.06] flex items-center justify-between text-xs">
-            <span className="text-slate-400">Saldo Líquido Previsto:</span>
+          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+            <span className="text-slate-500">Saldo Líquido Previsto:</span>
             <span
               className={cn(
                 'text-base font-bold',
                 filteredData.pendingReceivables - filteredData.pendingPayables >= 0
-                  ? 'text-emerald-400'
-                  : 'text-red-400'
+                  ? 'text-emerald-700'
+                  : 'text-red-700'
               )}
             >
               {formatCurrency(filteredData.pendingReceivables - filteredData.pendingPayables)}
@@ -834,12 +832,12 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
           <div>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h3 className="text-sm sm:text-base font-bold text-white">Pipeline de Vendas</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Funil comercial</p>
+                <h3 className="text-sm sm:text-base font-bold text-slate-900">Pipeline de Vendas</h3>
+                <p className="text-xs text-slate-500 mt-0.5">Funil comercial</p>
               </div>
               <Link
                 href="/leads"
-                className="text-xs font-semibold text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors"
+                className="text-xs font-semibold text-purple-600 hover:text-purple-800 flex items-center gap-1 transition-colors"
               >
                 Abrir CRM <ChevronRight className="w-3.5 h-3.5" />
               </Link>
@@ -852,17 +850,17 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
                 return (
                   <Link key={item.status} href="/leads" className="block group ios-interactive">
                     <div className="flex items-center justify-between text-xs mb-1">
-                      <span className="text-slate-300 group-hover:text-white transition-colors flex items-center gap-1.5">
+                      <span className="text-slate-700 group-hover:text-slate-900 transition-colors flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full" style={{ background: item.color }} />
                         {item.label}
                       </span>
-                      <span className="font-bold text-white px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-[11px]">
+                      <span className="font-bold text-slate-900 px-2 py-0.5 rounded-[3px] bg-slate-100 border border-slate-200 text-[11px]">
                         {item.count}
                       </span>
                     </div>
-                    <div className="h-1.5 bg-white/5 rounded-full overflow-hidden p-0.5">
+                    <div className="h-1.5 bg-slate-100 rounded-[2px] overflow-hidden">
                       <div
-                        className="h-full rounded-full transition-all duration-500"
+                        className="h-full rounded-[2px] transition-all duration-500"
                         style={{ width: `${pct}%`, background: item.color }}
                       />
                     </div>
@@ -872,29 +870,29 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
             </div>
           </div>
 
-          <div className="mt-4 pt-3 border-t border-white/[0.06] flex items-center justify-between text-xs">
-            <span className="text-slate-400">Total de Leads ativas:</span>
-            <span className="font-bold text-white">{filteredData.leads.length} contactos</span>
+          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+            <span className="text-slate-500">Total de Leads ativas:</span>
+            <span className="font-bold text-slate-900">{filteredData.leads.length} contactos</span>
           </div>
         </div>
       </div>
 
-      {/* Obras em Destaque (com Hiperligação Direta para cada Obra) */}
+      {/* Obras em Destaque */}
       <div className="glass-card p-3.5 sm:p-6">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h3 className="text-xs sm:text-base font-bold text-white">Obras em Curso & Recentes</h3>
-            <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5">Histórico e obras ativas</p>
+            <h3 className="text-xs sm:text-base font-bold text-slate-900">Obras em Curso & Recentes</h3>
+            <p className="text-[10px] sm:text-xs text-slate-500 mt-0.5">Histórico e obras ativas</p>
           </div>
           <Link
             href="/obras"
-            className="text-[11px] sm:text-xs font-semibold text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
+            className="text-[11px] sm:text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-colors"
           >
             Ver Todas ({stats.projectCount}) <ChevronRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
           </Link>
         </div>
 
-        <div className="divide-y divide-white/[0.06]">
+        <div className="divide-y divide-slate-100">
           {filteredData.projects.slice(0, 5).map((project) => {
             const margin =
               project.contractValue > 0
@@ -906,17 +904,17 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
               <Link
                 key={project.id}
                 href={`/obras/${project.id}`}
-                className="py-2 sm:py-3.5 flex items-center justify-between gap-2.5 group hover:bg-white/[0.02] px-1.5 sm:px-2 rounded-xl transition-all"
+                className="py-2 sm:py-3.5 flex items-center justify-between gap-2.5 group hover:bg-slate-50 px-1.5 sm:px-2 rounded-[4px] transition-all"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
-                    <HardHat className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-blue-400" />
+                  <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-[4px] bg-blue-50 border border-blue-200 flex items-center justify-center flex-shrink-0">
+                    <HardHat className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-blue-600" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs sm:text-sm font-semibold text-white group-hover:text-blue-400 transition-colors truncate">
+                    <p className="text-xs sm:text-sm font-semibold text-slate-900 group-hover:text-blue-600 transition-colors truncate">
                       {project.title}
                     </p>
-                    <p className="text-[10px] sm:text-xs text-slate-400 truncate">
+                    <p className="text-[10px] sm:text-xs text-slate-500 truncate">
                       {project.clientName} · {project.address}
                     </p>
                   </div>
@@ -924,14 +922,14 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
 
                 <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0 text-right">
                   <div>
-                    <p className="text-xs sm:text-sm font-bold text-white">
+                    <p className="text-xs sm:text-sm font-bold text-slate-900">
                       {formatCurrency(project.contractValue)}
                     </p>
                     <p className={cn('text-[9.5px] sm:text-xs font-semibold', mColor)}>
                       {margin.toFixed(0)}% margem
                     </p>
                   </div>
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-600 group-hover:text-white transition-all group-hover:translate-x-0.5" />
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-800 transition-all group-hover:translate-x-0.5" />
                 </div>
               </Link>
             )

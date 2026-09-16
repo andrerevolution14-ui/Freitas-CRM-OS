@@ -12,27 +12,32 @@ const COOKIE_NAME = process.env.NEXTAUTH_URL?.startsWith('https')
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const email = (body.email || '').trim().toLowerCase()
+    const identifier = (body.username || body.email || '').trim()
     const password = (body.password || '').trim()
 
-    if (!email || !password) {
-      return NextResponse.json({ error: 'Email e palavra-passe são obrigatórios.' }, { status: 400 })
+    if (!identifier || !password) {
+      return NextResponse.json({ error: 'Nome de utilizador e palavra-passe são obrigatórios.' }, { status: 400 })
     }
 
-    // Find user in database
+    // Find user in database by username or email
     const user = await prisma.user.findFirst({
-      where: { email: { equals: email, mode: 'insensitive' } },
+      where: {
+        OR: [
+          { username: { equals: identifier, mode: 'insensitive' } },
+          { email: { equals: identifier, mode: 'insensitive' } },
+        ],
+      },
     })
 
     if (!user) {
-      console.log(`[LOGIN] Utilizador não encontrado: ${email}`)
+      console.log(`[LOGIN] Utilizador não encontrado: ${identifier}`)
       return NextResponse.json({ error: 'Credenciais inválidas.' }, { status: 401 })
     }
 
     // Verify password via bcrypt
     const isValid = await bcrypt.compare(password, user.password)
     if (!isValid) {
-      console.log(`[LOGIN] Palavra-passe incorreta para: ${email}`)
+      console.log(`[LOGIN] Palavra-passe incorreta para: ${identifier}`)
       return NextResponse.json({ error: 'Credenciais inválidas.' }, { status: 401 })
     }
 

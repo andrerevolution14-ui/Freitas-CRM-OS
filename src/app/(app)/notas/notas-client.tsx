@@ -16,6 +16,7 @@ import {
 import { createNote, deleteNote } from '@/server/actions/notes'
 import { formatDate, cn } from '@/lib/utils'
 import { UserAvatar } from '@/components/ui/user-avatar'
+import { Modal } from '@/components/ui/modal'
 
 type Author = { id: string; name: string; color: string; image?: string | null } | null
 
@@ -79,88 +80,81 @@ export function NotasClient({ notes: initial, projects, leads }: Props) {
 
   return (
     <div className="space-y-5 animate-fade-in">
-      {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <StickyNote className="w-4 h-4 text-amber-400" />
-            <span className="text-[11px] font-bold tracking-wider text-slate-400 uppercase">
-              Freitas OS · Notas
-            </span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Notas</h1>
-          <p className="text-sm text-slate-400 mt-1">{notes.length} notas registadas</p>
-        </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold text-white ios-interactive"
-          style={{ background: 'linear-gradient(135deg, #fbbf24, #f59e0b)' }}
-        >
-          <Plus className="w-4 h-4" /> Nova Nota
-        </button>
-      </div>
-
-      {/* Search */}
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Pesquisar notas..."
-          className="w-full pl-9 pr-4 py-2 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none bg-[#16181f] border border-white/10"
-        />
-        {search && (
-          <button
-            onClick={() => setSearch('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500"
-          >
-            <X className="w-3 h-3" />
-          </button>
-        )}
-      </div>
-
-      {/* Create form */}
-      {showForm && (
-        <form
-          onSubmit={handleCreate}
-          className="p-5 space-y-3 animate-fade-in rounded-2xl bg-[#121624] border border-amber-500/30 shadow-2xl"
-        >
-          <div className="flex items-center justify-between mb-1">
-            <p className="text-sm font-semibold text-white flex items-center gap-2">
-              <StickyNote className="w-4 h-4 text-yellow-400" /> Nova Nota
-            </p>
-            <button type="button" onClick={() => setShowForm(false)} className="text-slate-400 hover:text-white p-1">
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
+      {/* Top Search & Action Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 bg-white border border-slate-200 shadow-sm rounded-[4px]">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
-            value={form.title}
-            onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-            placeholder="Título (opcional)"
-            className={inputClass}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Pesquisar por título ou conteúdo..."
+            className="w-full pl-9 pr-8 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:border-amber-600"
           />
+          {search && (
+            <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+        <div className="flex items-center justify-between sm:justify-end gap-3">
+          <span className="text-xs text-slate-500 font-medium">
+            <span className="text-slate-900 font-bold">{filtered.length}</span> notas
+          </span>
+          <button
+            onClick={() => setShowForm(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-[4px] text-xs font-bold uppercase tracking-wider text-white bg-amber-600 hover:bg-amber-700 shadow-md shadow-amber-600/20 transition-all active:scale-95"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Adicionar Nota</span>
+          </button>
+        </div>
+      </div>
 
-          <textarea
-            value={form.content}
-            onChange={(e) => setForm((p) => ({ ...p, content: e.target.value }))}
-            placeholder="Escreve a tua nota..."
-            rows={4}
-            required
-            className={cn(inputClass, 'resize-none')}
-          />
+      {/* Create Modal (Portal) */}
+      <Modal
+        isOpen={showForm}
+        onClose={() => setShowForm(false)}
+        title="Nova Nota"
+        subtitle="Registar apontamento interno ou nota de obra/lead"
+        icon={<StickyNote className="w-5 h-5 text-amber-600" />}
+        maxWidth="md"
+      >
+        <form onSubmit={handleCreate} className="space-y-3.5">
+          <div>
+            <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Título (Opcional)</label>
+            <input
+              value={form.title}
+              onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
+              placeholder="Ex: Reunião com arquiteto, Orçamento adicional..."
+              className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-white border border-slate-300 focus:outline-none focus:border-amber-600"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+              Conteúdo <span className="text-red-600">*</span>
+            </label>
+            <textarea
+              value={form.content}
+              onChange={(e) => setForm((p) => ({ ...p, content: e.target.value }))}
+              placeholder="Escreva os apontamentos e detalhes da nota..."
+              rows={4}
+              required
+              className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-white border border-slate-300 resize-none focus:outline-none focus:border-amber-600"
+              autoFocus
+            />
+          </div>
 
           {/* Associations */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-            {/* Project association */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1 flex items-center gap-1">
-                <HardHat className="w-3 h-3 text-blue-400" /> Associar a Obra (opcional)
+              <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1 flex items-center gap-1">
+                <HardHat className="w-3.5 h-3.5 text-blue-600" /> Associar a Obra
               </label>
               <select
                 value={form.projectId}
                 onChange={(e) => setForm((p) => ({ ...p, projectId: e.target.value, leadId: '' }))}
-                className={inputClass}
+                className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 bg-white border border-slate-300 focus:outline-none focus:border-amber-600"
               >
                 <option value="">Nenhuma obra</option>
                 {projects.map((p) => (
@@ -171,17 +165,16 @@ export function NotasClient({ notes: initial, projects, leads }: Props) {
               </select>
             </div>
 
-            {/* Lead association */}
             <div>
-              <label className="block text-xs font-medium text-slate-400 mb-1 flex items-center gap-1">
-                <FolderKanban className="w-3 h-3 text-purple-400" /> Associar a Lead / Cliente (opcional)
+              <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1 flex items-center gap-1">
+                <FolderKanban className="w-3.5 h-3.5 text-purple-600" /> Associar a Lead / CRM
               </label>
               <select
                 value={form.leadId}
                 onChange={(e) => setForm((p) => ({ ...p, leadId: e.target.value, projectId: '' }))}
-                className={inputClass}
+                className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 bg-white border border-slate-300 focus:outline-none focus:border-amber-600"
               >
-                <option value="">Nenhum lead</option>
+                <option value="">Nenhuma lead</option>
                 {leads.map((l) => (
                   <option key={l.id} value={l.id}>
                     {l.clientName}
@@ -191,55 +184,58 @@ export function NotasClient({ notes: initial, projects, leads }: Props) {
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex gap-2.5 pt-3 border-t border-slate-200">
             <button
               type="button"
               onClick={() => setShowForm(false)}
-              className="px-4 py-2 rounded-xl text-xs text-slate-400 hover:text-white border border-white/10 transition-colors"
+              className="flex-1 py-2.5 rounded-[4px] text-xs font-semibold text-slate-600 hover:text-slate-900 border border-slate-300 hover:bg-slate-100 transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              disabled={isPending}
-              className="px-5 py-2 rounded-xl text-xs font-semibold text-white bg-amber-600 hover:bg-amber-500 shadow-md shadow-amber-600/20 flex items-center gap-2 disabled:opacity-60 transition-all"
+              disabled={isPending || !form.content.trim()}
+              className="flex-1 py-2.5 rounded-[4px] text-xs font-bold uppercase tracking-wider text-white bg-amber-600 hover:bg-amber-700 flex items-center justify-center gap-2 disabled:opacity-60 transition-all shadow-md shadow-amber-600/20"
             >
-              {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : 'Guardar Nota'}
+              {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Guardar Nota'}
             </button>
           </div>
         </form>
-      )}
+      </Modal>
 
       {/* Notes list */}
       {filtered.length === 0 ? (
-        <div className="text-center py-16 text-slate-500">
+        <div className="text-center py-16 text-slate-400 bg-white border border-slate-200 rounded-[4px] shadow-xs">
           <StickyNote className="w-10 h-10 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">{search ? 'Nenhuma nota encontrada' : 'Sem notas ainda'}</p>
+          <p className="text-sm font-medium">{search ? 'Nenhuma nota encontrada' : 'Sem notas ainda'}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map((note) => (
             <div
               key={note.id}
-              className="p-4 sm:p-5 rounded-2xl bg-[#121624] border border-white/10 hover:border-amber-500/30 transition-all group relative min-w-0 w-full"
+              className="p-4 sm:p-5 rounded-[4px] bg-white border border-slate-200 hover:border-amber-400 transition-all group relative flex flex-col justify-between shadow-xs"
             >
-              {/* Delete */}
-              <button
-                onClick={() => handleDelete(note.id)}
-                className="absolute top-3 right-3 text-slate-500 sm:opacity-0 sm:group-hover:opacity-100 hover:text-red-400 p-1 transition-all"
-                title="Eliminar nota"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-
-              {note.title && (
-                <p className="text-sm font-semibold text-white mb-2 pr-6">{note.title}</p>
-              )}
-              <p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">{note.content}</p>
+              <div>
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  {note.title ? (
+                    <p className="text-sm font-bold text-slate-900 pr-6 leading-snug">{note.title}</p>
+                  ) : (
+                    <div />
+                  )}
+                  <button
+                    onClick={() => handleDelete(note.id)}
+                    className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-600 p-1 transition-all"
+                    title="Eliminar nota"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed">{note.content}</p>
+              </div>
 
               <div
-                className="mt-4 pt-3 flex items-center justify-between gap-2"
-                style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+                className="mt-4 pt-3 flex items-center justify-between gap-2 border-t border-slate-100"
               >
                 {/* Author + Date */}
                 <div className="flex items-center gap-1.5">
@@ -251,7 +247,7 @@ export function NotasClient({ notes: initial, projects, leads }: Props) {
                       size={18}
                     />
                   )}
-                  <p className="text-[10px] text-slate-600">{formatDate(note.createdAt)}</p>
+                  <p className="text-[10.5px] font-medium text-slate-400">{formatDate(note.createdAt)}</p>
                 </div>
 
                 {/* Links */}
@@ -259,19 +255,19 @@ export function NotasClient({ notes: initial, projects, leads }: Props) {
                   {note.project && (
                     <Link
                       href={`/obras/${note.project.id}`}
-                      className="flex items-center gap-1 text-[10px] text-blue-400 hover:text-blue-300 transition-colors"
+                      className="flex items-center gap-1 text-[10.5px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-[3px] border border-blue-200 hover:bg-blue-100 transition-colors"
                     >
                       <LinkIcon className="w-3 h-3" />
-                      <span className="truncate max-w-[90px]">{note.project.title}</span>
+                      <span className="truncate max-w-[100px]">{note.project.title}</span>
                     </Link>
                   )}
                   {note.lead && (
                     <Link
                       href={`/leads`}
-                      className="flex items-center gap-1 text-[10px] text-purple-400 hover:text-purple-300 transition-colors"
+                      className="flex items-center gap-1 text-[10.5px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-[3px] border border-purple-200 hover:bg-purple-100 transition-colors"
                     >
                       <LinkIcon className="w-3 h-3" />
-                      {note.lead.clientName}
+                      <span className="truncate max-w-[100px]">{note.lead.clientName}</span>
                     </Link>
                   )}
                 </div>

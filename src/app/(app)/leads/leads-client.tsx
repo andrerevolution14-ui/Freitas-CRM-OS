@@ -7,20 +7,22 @@ import {
   Plus,
   Phone,
   MapPin,
-  Euro,
   Calendar,
   ArrowRight,
   Trash2,
-  LayoutGrid,
   List,
   Search,
   X,
   Loader2,
   ChevronDown,
-  User,
-  GripVertical,
   Building2,
-  Sparkles,
+  Upload,
+  Download,
+  Filter,
+  SlidersHorizontal,
+  CheckSquare,
+  AlertCircle,
+  Briefcase,
 } from 'lucide-react'
 import {
   createLead,
@@ -29,43 +31,50 @@ import {
   convertLeadToProject,
 } from '@/server/actions/leads'
 import { formatCurrency, formatDate, getStatusLabel, cn } from '@/lib/utils'
+import { Modal } from '@/components/ui/modal'
 import type { LeadStatus } from '@prisma/client'
 
-const COLUMNS: { status: LeadStatus; label: string; color: string; dot: string; bg: string }[] = [
+const CRM_COLUMNS: {
+  status: LeadStatus
+  title: string
+  originalLabel: string
+  color: string
+  dot: string
+}[] = [
   {
     status: 'NOVA_LEAD',
-    label: 'Nova Lead',
-    color: 'rgba(79,126,248,0.12)',
-    bg: 'rgba(79,126,248,0.04)',
-    dot: '#4f7ef8',
+    title: 'Interessados',
+    originalLabel: 'Nova Lead',
+    color: '#3b82f6',
+    dot: 'bg-blue-500',
   },
   {
     status: 'VISITA_AGENDADA',
-    label: 'Visita Agendada',
-    color: 'rgba(167,139,250,0.12)',
-    bg: 'rgba(167,139,250,0.04)',
-    dot: '#a78bfa',
+    title: 'Qualificação',
+    originalLabel: 'Visita Agendada',
+    color: '#8b5cf6',
+    dot: 'bg-purple-500',
   },
   {
     status: 'ORCAMENTO_ENVIADO',
-    label: 'Orçamento Enviado',
-    color: 'rgba(251,191,36,0.12)',
-    bg: 'rgba(251,191,36,0.04)',
-    dot: '#fbbf24',
+    title: 'Proposta',
+    originalLabel: 'Orçamento Enviado',
+    color: '#f59e0b',
+    dot: 'bg-amber-500',
   },
   {
     status: 'CONTRATO_ASSINADO',
-    label: 'Contrato Assinado',
-    color: 'rgba(52,211,153,0.12)',
-    bg: 'rgba(52,211,153,0.04)',
-    dot: '#34d399',
+    title: 'Negociação',
+    originalLabel: 'Contrato Assinado',
+    color: '#10b981',
+    dot: 'bg-emerald-500',
   },
   {
     status: 'PERDIDA',
-    label: 'Perdida',
-    color: 'rgba(248,113,113,0.12)',
-    bg: 'rgba(248,113,113,0.04)',
-    dot: '#f87171',
+    title: 'Fechamento',
+    originalLabel: 'Perdida / Concluída',
+    color: '#ef4444',
+    dot: 'bg-red-500',
   },
 ]
 
@@ -87,8 +96,9 @@ const SOURCES = ['Meta Ads', 'Google Ads', 'Instagram', 'Referência', 'Website'
 export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
   const router = useRouter()
   const [leads, setLeads] = useState(initial)
-  const [view, setView] = useState<'kanban' | 'table'>('kanban')
+  const [view, setView] = useState<'funil' | 'listagem' | 'mapa'>('funil')
   const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState<'recent' | 'value_desc' | 'name'>('recent')
   const [showForm, setShowForm] = useState(false)
   const [showConvert, setShowConvert] = useState<Lead | null>(null)
   const [draggedLeadId, setDraggedLeadId] = useState<string | null>(null)
@@ -111,12 +121,26 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
     startDate: '',
   })
 
-  const filtered = leads.filter(
-    (l) =>
-      l.clientName.toLowerCase().includes(search.toLowerCase()) ||
-      l.address.toLowerCase().includes(search.toLowerCase()) ||
-      l.phone.includes(search)
-  )
+  // Filtering and Sorting
+  const filtered = leads
+    .filter(
+      (l) =>
+        l.clientName.toLowerCase().includes(search.toLowerCase()) ||
+        l.address.toLowerCase().includes(search.toLowerCase()) ||
+        l.phone.includes(search) ||
+        (l.source || '').toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (sortBy === 'value_desc') {
+        return (b.estimatedValue || 0) - (a.estimatedValue || 0)
+      }
+      if (sortBy === 'name') {
+        return a.clientName.localeCompare(b.clientName)
+      }
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    })
+
+  const totalPipelineValue = filtered.reduce((acc, l) => acc + (l.estimatedValue || 0), 0)
 
   // Drag and drop handlers
   function handleDragStart(e: React.DragEvent, id: string) {
@@ -202,14 +226,8 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
     })
   }
 
-  async function handleStatusChange(id: string, status: LeadStatus) {
-    startTransition(async () => {
-      await updateLeadStatus(id, status)
-      setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, status } : l)))
-    })
-  }
-
-  async function handleDelete(id: string) {
+  async function handleDelete(id: string, e: React.MouseEvent) {
+    e.stopPropagation()
     if (!confirm('Eliminar esta lead permanentemente?')) return
     startTransition(async () => {
       await deleteLead(id)
@@ -223,7 +241,7 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
     startTransition(async () => {
       const project = await convertLeadToProject(showConvert.id, {
         title: convertForm.title || `Obra — ${showConvert.clientName}`,
-        contractValue: parseFloat(convertForm.contractValue),
+        contractValue: parseFloat(convertForm.contractValue) || 0,
         clientNIF: convertForm.clientNIF || undefined,
         startDate: convertForm.startDate ? new Date(convertForm.startDate) : undefined,
       })
@@ -232,100 +250,179 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
     })
   }
 
-  const badgeClass = (status: LeadStatus) => {
-    const map: Record<LeadStatus, string> = {
-      NOVA_LEAD: 'badge-blue',
-      VISITA_AGENDADA: 'badge-purple',
-      ORCAMENTO_ENVIADO: 'badge-yellow',
-      CONTRATO_ASSINADO: 'badge-green',
-      PERDIDA: 'badge-red',
+  // Export to CSV
+  function handleExport() {
+    if (leads.length === 0) {
+      alert('Não existem contactos para exportar.')
+      return
     }
-    return map[status]
+    const headers = ['Nome', 'Telefone', 'Email', 'Morada', 'Canal', 'Valor Estimado', 'Estado', 'Data']
+    const rows = leads.map(l => [
+      `"${l.clientName.replace(/"/g, '""')}"`,
+      `"${l.phone}"`,
+      `"${l.email || ''}"`,
+      `"${l.address.replace(/"/g, '""')}"`,
+      `"${l.source}"`,
+      `"${l.estimatedValue || 0}"`,
+      `"${l.status}"`,
+      `"${new Date(l.createdAt).toLocaleDateString('pt-PT')}"`,
+    ])
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n')
+    const encodedUri = encodeURI(csvContent)
+    const link = document.createElement('a')
+    link.setAttribute('href', encodedUri)
+    link.setAttribute('download', `leads-freitas-os-${new Date().toISOString().slice(0, 10)}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  // Lead card indicator dot
+  function getLeadDot(lead: Lead) {
+    if (lead.status === 'CONTRATO_ASSINADO' || lead.status === 'VISITA_AGENDADA') {
+      return { color: 'bg-emerald-500', label: 'Com tarefa agendada' }
+    }
+    if (lead.status === 'ORCAMENTO_ENVIADO') {
+      return { color: 'bg-amber-500', label: 'Tarefa atrasada / pendente' }
+    }
+    return { color: 'bg-red-500', label: 'Sem tarefa agendada' }
   }
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-[1400px] mx-auto pb-10">
-      {/* iOS App Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-purple-400" />
-            <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
-              Pipeline Comercial & CRM
-            </span>
-          </div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight mt-1">
-            Funil de Obras
-          </h1>
-          <p className="text-xs text-slate-400 mt-1">
-            💡 <strong>Arrasta e larga (Drag & Drop)</strong> os cartões de uma coluna para a outra para atualizar o estado em tempo real.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {/* iOS View Switcher */}
-          <div className="ios-segmented">
-            <button
-              onClick={() => setView('kanban')}
-              className={cn(
-                'ios-segment-btn flex items-center gap-1.5',
-                view === 'kanban' && 'ios-segment-btn-active'
-              )}
-            >
-              <LayoutGrid className="w-3.5 h-3.5" />
-              Kanban
-            </button>
-            <button
-              onClick={() => setView('table')}
-              className={cn(
-                'ios-segment-btn flex items-center gap-1.5',
-                view === 'table' && 'ios-segment-btn-active'
-              )}
-            >
-              <List className="w-3.5 h-3.5" />
-              Lista
-            </button>
-          </div>
-
-          <button
-            onClick={() => setShowForm(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-95 shadow-md shadow-blue-600/20 transition-all ios-interactive"
-          >
-            <Plus className="w-4 h-4" />
-            Nova Lead
-          </button>
-        </div>
-      </div>
-
-      {/* Search Bar */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative w-full max-w-sm">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+    <div className="space-y-4 pb-12 w-full max-w-full">
+      {/* ── TOP SEARCH & SORT BAR (Image 2 style) ────────────────────── */}
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white border border-slate-200 shadow-sm p-2.5 rounded-[4px]">
+        {/* Search */}
+        <div className="relative flex-1 max-w-md">
           <input
+            type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Pesquisar por cliente, morada, telefone..."
-            className="w-full pl-10 pr-8 py-2 rounded-xl text-xs text-white placeholder-slate-500 bg-white/5 border border-white/10 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+            placeholder="Buscar por nome, cliente ou morada..."
+            className="w-full pl-3.5 pr-10 py-2 rounded-[4px] text-xs text-slate-900 placeholder-slate-400 bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:border-blue-600"
           />
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-600 pointer-events-none" />
           {search && (
             <button
               onClick={() => setSearch('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
+              className="absolute right-9 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700"
             >
               <X className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
 
-        <div className="text-xs text-slate-400 hidden sm:block">
-          A mostrar <strong className="text-white">{filtered.length}</strong> contactos
+        {/* Right count and sort dropdown */}
+        <div className="flex items-center justify-between md:justify-end gap-3 flex-shrink-0 text-xs">
+          <span className="text-slate-600 font-semibold whitespace-nowrap">
+            <strong className="text-slate-900 text-sm">{filtered.length}</strong> negócio(s)
+          </span>
+
+          <div className="flex items-center gap-1.5">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+              className="px-2.5 py-2 rounded-[4px] text-xs text-slate-800 bg-white border border-slate-200 focus:outline-none cursor-pointer"
+            >
+              <option value="recent">Data recente - antigo</option>
+              <option value="value_desc">Maior valor estimado</option>
+              <option value="name">Nome (A - Z)</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* KANBAN VIEW WITH DRAG AND DROP */}
-      {view === 'kanban' && (
-        <div className="flex gap-4 overflow-x-auto pb-6 pt-1">
-          {COLUMNS.map((col) => {
+      {/* ── ACTION TOOLBAR & METRICS (Image 2 style) ──────────────────── */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white border border-slate-200 shadow-sm p-3.5 sm:p-4 rounded-[4px]">
+        {/* Action Button & Large Metric */}
+        <div className="flex items-center gap-4 sm:gap-6 flex-wrap">
+          <button
+            onClick={() => setShowForm(true)}
+            className="px-4 py-2.5 rounded-[4px] text-xs font-bold uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-700 flex items-center gap-2 transition-all shadow-md shadow-blue-600/20 active:scale-98"
+          >
+            <Plus className="w-4 h-4" />
+            Adicionar Negócio
+          </button>
+
+          <div className="flex items-baseline gap-3">
+            <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+              {leads.length}
+            </span>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider leading-none">
+                NEGÓCIOS
+              </span>
+              <span className="text-sm sm:text-base font-bold text-emerald-600 tracking-tight leading-tight mt-0.5">
+                {formatCurrency(totalPipelineValue)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Utilities: Import, Export, Views */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => alert('Para importar contactos em lote, utilize a importação via ficheiro CSV/Excel.')}
+            className="px-3 py-2 rounded-[4px] text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 flex items-center gap-1.5 transition-colors"
+          >
+            <Upload className="w-3.5 h-3.5 text-blue-600" />
+            <span>IMPORTAR</span>
+          </button>
+
+          <button
+            onClick={handleExport}
+            className="px-3 py-2 rounded-[4px] text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 flex items-center gap-1.5 transition-colors"
+          >
+            <Download className="w-3.5 h-3.5 text-blue-600" />
+            <span>EXPORTAR</span>
+          </button>
+
+          {/* View switcher: LISTAGEM | FUNIL | MAPA */}
+          <div className="inline-flex border border-slate-200 rounded-[4px] overflow-hidden bg-slate-100 p-0.5">
+            <button
+              onClick={() => setView('listagem')}
+              className={cn(
+                'px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 rounded-[2px] transition-colors',
+                view === 'listagem'
+                  ? 'bg-blue-600 text-white shadow-sm font-bold'
+                  : 'text-slate-600 hover:text-slate-900'
+              )}
+            >
+              <List className="w-3.5 h-3.5" />
+              <span>LISTAGEM</span>
+            </button>
+            <button
+              onClick={() => setView('funil')}
+              className={cn(
+                'px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 rounded-[2px] transition-colors',
+                view === 'funil'
+                  ? 'bg-blue-600 text-white shadow-sm font-bold'
+                  : 'text-slate-600 hover:text-slate-900'
+              )}
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span>FUNIL</span>
+            </button>
+            <button
+              onClick={() => setView('mapa')}
+              className={cn(
+                'px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 rounded-[2px] transition-colors',
+                view === 'mapa'
+                  ? 'bg-blue-600 text-white shadow-sm font-bold'
+                  : 'text-slate-600 hover:text-slate-900'
+              )}
+            >
+              <MapPin className="w-3.5 h-3.5" />
+              <span>MAPA</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── FUNIL VIEW (Image 2 style: Rectangular, Crisp Columns & Cards) ─ */}
+      {view === 'funil' && (
+        <div className="flex md:grid md:grid-cols-3 lg:grid-cols-5 gap-3 items-start overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-none">
+          {CRM_COLUMNS.map((col) => {
             const colLeads = filtered.filter((l) => l.status === col.status)
             const colTotalValue = colLeads.reduce((s, l) => s + (l.estimatedValue || 0), 0)
             const isTarget = dragOverCol === col.status
@@ -337,126 +434,81 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, col.status)}
                 className={cn(
-                  'flex-shrink-0 w-80 rounded-2xl p-3.5 transition-all flex flex-col justify-between min-h-[500px]',
-                  isTarget ? 'kanban-drop-target ring-2 ring-blue-500/50' : 'glass-card'
+                  'w-[84vw] sm:w-[320px] md:w-auto flex-shrink-0 snap-center md:snap-align-none rounded-[4px] border transition-all flex flex-col min-h-[480px] md:min-h-[560px] bg-[#f1f5f9]',
+                  isTarget ? 'border-blue-500 ring-1 ring-blue-500/50 bg-blue-50/30' : 'border-slate-200'
                 )}
-                style={{
-                  background: isTarget ? 'rgba(79,126,248,0.12)' : col.bg,
-                  borderColor: isTarget ? '#4f7ef8' : `${col.dot}20`,
-                }}
               >
-                <div>
-                  {/* Column Header */}
-                  <div className="flex items-center justify-between mb-3 px-1">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full" style={{ background: col.dot }} />
-                      <span className="text-xs font-bold text-white tracking-wide">{col.label}</span>
-                    </div>
-                    <span className="text-[11px] font-semibold text-slate-400 px-2 py-0.5 rounded-full bg-white/5 border border-white/10">
-                      {colLeads.length}
-                    </span>
+                {/* Column Header (Image 2 style) */}
+                <div className="px-3 py-3 border-b border-slate-200 bg-[#eef2f6] rounded-t-[4px] text-center">
+                  <h3 className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight uppercase">
+                    {col.title}
+                  </h3>
+                  <div className="text-[11px] font-bold text-slate-800 mt-0.5">
+                    {formatCurrency(colTotalValue)}
                   </div>
-
-                  {/* Value Subtitle */}
-                  <div className="px-1 mb-3 text-[11px] text-slate-400 flex items-center justify-between">
-                    <span>Total Estimado:</span>
-                    <span className="font-semibold text-slate-200">{formatCurrency(colTotalValue)}</span>
+                  <div className="text-[10px] font-medium text-slate-500">
+                    ({colLeads.length} negócios)
                   </div>
+                </div>
 
-                  {/* Drag Target Drop Hint */}
-                  {isTarget && (
-                    <div className="mb-3 py-2 px-3 rounded-xl border border-dashed border-blue-400 bg-blue-500/20 text-blue-300 text-xs text-center font-medium animate-pulse">
-                      ↓ Largar aqui para mover para {col.label}
-                    </div>
-                  )}
+                {/* Cards Container */}
+                <div className="p-2 space-y-2 flex-1 overflow-y-auto">
+                  {colLeads.map((lead) => {
+                    const dotInfo = getLeadDot(lead)
+                    return (
+                      <div
+                        key={lead.id}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, lead.id)}
+                        onDragEnd={handleDragEnd}
+                        onClick={() => router.push(`/leads/${lead.id}`)}
+                        className={cn(
+                          'p-3 rounded-[4px] border border-slate-200 bg-white hover:border-blue-500 transition-all cursor-pointer shadow-xs relative group',
+                          draggedLeadId === lead.id && 'opacity-30 border-dashed border-blue-500'
+                        )}
+                      >
+                        {/* Dot indicator and Title */}
+                        <div className="flex items-start gap-2">
+                          <span
+                            className={cn('w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0', dotInfo.color)}
+                            title={dotInfo.label}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-slate-900 leading-snug truncate">
+                              {lead.clientName}
+                            </p>
+                            <p className="text-[11px] text-slate-500 truncate mt-0.5">
+                              {lead.address || 'Sem morada'}
+                            </p>
+                          </div>
+                        </div>
 
-                  {/* Cards Container */}
-                  <div className="space-y-3">
-                    {colLeads.map((lead) => {
-                      const isDragged = draggedLeadId === lead.id
+                        {/* Value and Source */}
+                        <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-slate-100">
+                          <span className="text-xs font-bold text-slate-900">
+                            {lead.estimatedValue ? formatCurrency(lead.estimatedValue) : 'Valor a definir'}
+                          </span>
+                          <span className="text-[10px] text-slate-600 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded-[2px]">
+                            {lead.source}
+                          </span>
+                        </div>
 
-                      return (
-                        <div
-                          key={lead.id}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, lead.id)}
-                          onDragEnd={handleDragEnd}
-                          onClick={() => router.push(`/leads/${lead.id}`)}
-                          className={cn(
-                            'glass-card p-4 rounded-2xl cursor-grab active:cursor-grabbing border border-white/[0.08] hover:border-white/20 transition-all group ios-interactive',
-                            isDragged && 'kanban-drag-source'
-                          )}
-                        >
-                          {/* Card Top */}
-                          <div className="flex items-start justify-between gap-2 mb-2">
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <div
-                                className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold text-white flex-shrink-0 shadow-sm"
-                                style={{ background: 'linear-gradient(135deg, #4f7ef8, #a78bfa)' }}
-                              >
-                                {lead.clientName[0]}
-                              </div>
-                              <div className="min-w-0">
-                                <p className="text-sm font-semibold text-white group-hover:text-blue-400 transition-colors truncate">
-                                  {lead.clientName}
-                                </p>
-                                <span className="text-[10px] text-slate-400">{lead.source}</span>
-                              </div>
-                            </div>
+                        {/* Quick action buttons on card footer */}
+                        <div className="flex items-center justify-between mt-2 pt-1">
+                          <a
+                            href={`tel:${lead.phone}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-slate-400 hover:text-amber-600 p-1 rounded hover:bg-amber-50 transition-colors"
+                            title={`Ligar: ${lead.phone}`}
+                          >
+                            <Phone className="w-3.5 h-3.5 text-amber-600" />
+                          </a>
 
-                            <div className="flex items-center gap-1">
-                              <GripVertical className="w-3.5 h-3.5 text-slate-600 group-hover:text-slate-400" />
+                          <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100">
+                            {lead.status === 'CONTRATO_ASSINADO' && !lead.project && (
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  handleDelete(lead.id)
-                                }}
-                                className="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-red-400 transition-all p-0.5"
-                                title="Eliminar lead"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </div>
-
-                          {/* Contact and address details */}
-                          <div className="space-y-1.5 mt-3 pt-2.5 border-t border-white/[0.05]">
-                            <div className="flex items-center gap-2 text-xs text-slate-300">
-                              <Phone className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
-                              <span className="truncate">{lead.phone}</span>
-                            </div>
-                            <div className="flex items-center gap-2 text-xs text-slate-400">
-                              <MapPin className="w-3.5 h-3.5 text-slate-500 flex-shrink-0" />
-                              <span className="truncate">{lead.address}</span>
-                            </div>
-                            {lead.estimatedValue && (
-                              <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 pt-1">
-                                <Euro className="w-3.5 h-3.5 flex-shrink-0" />
-                                <span>{formatCurrency(lead.estimatedValue)}</span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Card Footer Actions */}
-                          <div
-                            className="mt-3 pt-2.5 border-t border-white/[0.05] flex items-center justify-between gap-2"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <select
-                              value={lead.status}
-                              onChange={(e) => handleStatusChange(lead.id, e.target.value as LeadStatus)}
-                              className="text-[11px] rounded-lg px-2 py-1 text-slate-300 bg-white/5 border border-white/10 focus:outline-none focus:ring-1 focus:ring-blue-500/50"
-                            >
-                              {COLUMNS.map((c) => (
-                                <option key={c.status} value={c.status}>
-                                  {c.label}
-                                </option>
-                              ))}
-                            </select>
-
-                            {!lead.project ? (
-                              <button
-                                onClick={() => {
                                   setShowConvert(lead)
                                   setConvertForm({
                                     title: `Obra — ${lead.clientName}`,
@@ -465,30 +517,31 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
                                     startDate: '',
                                   })
                                 }}
-                                className="text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors px-2 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20"
+                                className="text-[10px] font-bold text-emerald-700 hover:underline px-1 py-0.5"
+                                title="Converter em Obra"
                               >
-                                <Building2 className="w-3 h-3" />
                                 + Obra
                               </button>
-                            ) : (
-                              <Link
-                                href={`/obras/${lead.project.id}`}
-                                className="text-[11px] font-medium text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
-                              >
-                                Ver Obra →
-                              </Link>
                             )}
+
+                            <button
+                              onClick={(e) => handleDelete(lead.id, e)}
+                              className="text-slate-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors"
+                              title="Eliminar Lead"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         </div>
-                      )
-                    })}
-
-                    {colLeads.length === 0 && (
-                      <div className="text-center py-12 text-xs text-slate-600 border border-dashed border-white/5 rounded-2xl">
-                        Nenhuma lead nesta etapa
                       </div>
-                    )}
-                  </div>
+                    )
+                  })}
+
+                  {colLeads.length === 0 && (
+                    <div className="text-center py-10 text-slate-400 text-xs italic">
+                      Nenhum negócio nesta fase
+                    </div>
+                  )}
                 </div>
               </div>
             )
@@ -496,221 +549,239 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
         </div>
       )}
 
-      {/* TABLE VIEW */}
-      {view === 'table' && (
-        <div className="glass-card overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-white/[0.06] text-xs font-semibold text-slate-400">
-                <th className="text-left px-4 py-3.5">Cliente</th>
-                <th className="text-left px-4 py-3.5">Telefone</th>
-                <th className="text-left px-4 py-3.5">Morada</th>
-                <th className="text-left px-4 py-3.5">Valor Est.</th>
-                <th className="text-left px-4 py-3.5">Estado</th>
-                <th className="text-left px-4 py-3.5">Data</th>
-                <th className="text-right px-4 py-3.5">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/[0.04]">
-              {filtered.map((lead) => (
-                <tr
-                  key={lead.id}
-                  onClick={() => router.push(`/leads/${lead.id}`)}
-                  className="table-row-hover cursor-pointer transition-colors"
-                >
-                  <td className="px-4 py-3.5">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-                        style={{ background: 'linear-gradient(135deg, #4f7ef8, #a78bfa)' }}
-                      >
-                        {lead.clientName[0]}
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-white leading-tight">{lead.clientName}</p>
-                        <p className="text-xs text-slate-500 mt-0.5">{lead.source}</p>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3.5 text-xs text-slate-300">{lead.phone}</td>
-                  <td className="px-4 py-3.5 text-xs text-slate-400 max-w-[200px] truncate">{lead.address}</td>
-                  <td className="px-4 py-3.5 text-xs font-bold text-emerald-400">
-                    {lead.estimatedValue ? formatCurrency(lead.estimatedValue) : '—'}
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <span className={badgeClass(lead.status)}>{getStatusLabel(lead.status)}</span>
-                  </td>
-                  <td className="px-4 py-3.5 text-xs text-slate-500">{formatDate(lead.createdAt)}</td>
-                  <td className="px-4 py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      onClick={() => handleDelete(lead.id)}
-                      className="text-slate-600 hover:text-red-400 transition-colors p-1"
-                      title="Eliminar"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
+      {/* ── LISTAGEM VIEW (Table style) ──────────────────────────────── */}
+      {view === 'listagem' && (
+        <div className="border border-slate-200 rounded-[4px] overflow-hidden bg-white shadow-sm">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200 uppercase tracking-wider text-[11px]">
+                <tr>
+                  <th className="px-4 py-3">Cliente / Negócio</th>
+                  <th className="px-4 py-3">Telefone</th>
+                  <th className="px-4 py-3">Morada</th>
+                  <th className="px-4 py-3">Origem</th>
+                  <th className="px-4 py-3">Valor Estimado</th>
+                  <th className="px-4 py-3">Estado</th>
+                  <th className="px-4 py-3 text-right">Ações</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-          {filtered.length === 0 && (
-            <div className="text-center py-12 text-slate-500 text-xs">Nenhuma lead encontrada.</div>
-          )}
-        </div>
-      )}
-
-      {/* CREATE LEAD MODAL */}
-      {showForm && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fade-in"
-        >
-          <div className="w-full max-w-md bg-[#121624] border border-white/20 p-6 rounded-2xl shadow-2xl">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                <User className="w-5 h-5 text-blue-400" /> Nova Lead Comercial
-              </h2>
-              <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-white p-1 rounded-lg">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <form onSubmit={handleCreateLead} className="space-y-3.5">
-              {[
-                { label: 'Nome do Cliente *', key: 'clientName', type: 'text', placeholder: 'Ex: Sofia Ribeiro', required: true },
-                { label: 'Telefone *', key: 'phone', type: 'tel', placeholder: '912 345 678', required: true },
-                { label: 'Email', key: 'email', type: 'email', placeholder: 'sofia@exemplo.pt', required: false },
-                { label: 'Morada da Obra *', key: 'address', type: 'text', placeholder: 'Rua Principal, Porto', required: true },
-                { label: 'Valor Estimado (€)', key: 'estimatedValue', type: 'number', placeholder: '45000', required: false },
-              ].map((field) => (
-                <div key={field.key}>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">{field.label}</label>
-                  <input
-                    type={field.type}
-                    required={field.required}
-                    placeholder={field.placeholder}
-                    value={(form as Record<string, string>)[field.key]}
-                    onChange={(e) => setForm((p) => ({ ...p, [field.key]: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-xl text-xs text-white placeholder-slate-500 bg-[#191e30] border border-white/15 focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-              ))}
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Canal de Origem</label>
-                <select
-                  value={form.source}
-                  onChange={(e) => setForm((p) => ({ ...p, source: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl text-xs text-white bg-[#191e30] border border-white/15 focus:outline-none"
-                >
-                  {SOURCES.map((s) => (
-                    <option key={s} value={s} className="bg-[#12141c]">
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex gap-2.5 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="flex-1 py-2.5 rounded-xl text-xs text-slate-400 hover:text-white border border-white/15 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 disabled:opacity-60 transition-all"
-                >
-                  {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Criar Lead'}
-                </button>
-              </div>
-            </form>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filtered.map((lead) => (
+                  <tr
+                    key={lead.id}
+                    onClick={() => router.push(`/leads/${lead.id}`)}
+                    className="hover:bg-slate-50 cursor-pointer transition-colors"
+                  >
+                    <td className="px-4 py-3 font-semibold text-slate-900">
+                      {lead.clientName}
+                    </td>
+                    <td className="px-4 py-3 text-slate-700">{lead.phone}</td>
+                    <td className="px-4 py-3 text-slate-500 truncate max-w-[220px]">{lead.address}</td>
+                    <td className="px-4 py-3 text-slate-500">{lead.source}</td>
+                    <td className="px-4 py-3 font-bold text-slate-900">
+                      {lead.estimatedValue ? formatCurrency(lead.estimatedValue) : '—'}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-[3px] text-[10.5px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                        {getStatusLabel(lead.status)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={(e) => handleDelete(lead.id, e)}
+                        className="text-slate-400 hover:text-red-600 p-1"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="text-center py-12 text-slate-400">
+                      Nenhum negócio encontrado.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
 
-      {/* CONVERT TO OBRA MODAL */}
-      {showConvert && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-fade-in"
-        >
-          <div className="w-full max-w-md bg-[#121624] border border-white/20 p-6 rounded-2xl shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                <Building2 className="w-5 h-5 text-emerald-400" /> Converter Lead em Obra
-              </h2>
-              <button onClick={() => setShowConvert(null)} className="text-slate-400 hover:text-white p-1 rounded-lg">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 mb-3.5">
-              <p className="text-xs text-slate-200">
-                Cliente: <strong className="text-white">{showConvert.clientName}</strong>
-              </p>
-              <p className="text-[11px] text-slate-400 mt-0.5">Morada: {showConvert.address}</p>
-            </div>
-            <form onSubmit={handleConvert} className="space-y-3.5">
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Título da Obra</label>
-                <input
-                  type="text"
-                  value={convertForm.title}
-                  onChange={(e) => setConvertForm((p) => ({ ...p, title: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 rounded-xl text-xs text-white bg-white/5 border border-white/10 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
-                />
+      {/* ── MAPA VIEW (Overview / Distribution) ──────────────────────── */}
+      {view === 'mapa' && (
+        <div className="border border-slate-200 rounded-[4px] p-6 bg-white shadow-sm text-center space-y-4">
+          <MapPin className="w-10 h-10 text-blue-600 mx-auto opacity-70" />
+          <h3 className="text-base font-bold text-slate-900">Distribuição Geográfica de Obras</h3>
+          <p className="text-xs text-slate-500 max-w-md mx-auto">
+            {filtered.length} contactos e localizações registadas no sistema.
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-left max-w-3xl mx-auto pt-2">
+            {filtered.map((l) => (
+              <div key={l.id} className="p-3 bg-slate-50 border border-slate-200 rounded-[4px]">
+                <p className="text-xs font-bold text-slate-900 truncate">{l.clientName}</p>
+                <p className="text-[11px] text-slate-500 truncate mt-0.5">{l.address}</p>
+                <p className="text-[11px] font-bold text-emerald-700 mt-1">
+                  {l.estimatedValue ? formatCurrency(l.estimatedValue) : '—'}
+                </p>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">
-                  Valor Adjudicado do Contrato (€) *
-                </label>
-                <input
-                  type="number"
-                  required
-                  value={convertForm.contractValue}
-                  onChange={(e) => setConvertForm((p) => ({ ...p, contractValue: e.target.value }))}
-                  placeholder="85000"
-                  className="w-full px-3.5 py-2.5 rounded-xl text-xs text-white bg-white/5 border border-white/10 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">NIF do Cliente</label>
-                <input
-                  type="text"
-                  value={convertForm.clientNIF}
-                  onChange={(e) => setConvertForm((p) => ({ ...p, clientNIF: e.target.value }))}
-                  placeholder="245 678 901"
-                  className="w-full px-3.5 py-2.5 rounded-xl text-xs text-white bg-white/5 border border-white/10 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1.5">Data de Início Prevista</label>
-                <input
-                  type="date"
-                  value={convertForm.startDate}
-                  onChange={(e) => setConvertForm((p) => ({ ...p, startDate: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 rounded-xl text-xs text-white bg-white/5 border border-white/10 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
-                />
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowConvert(null)}
-                  className="flex-1 py-2.5 rounded-xl text-xs text-slate-400 hover:text-white border border-white/10 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2 disabled:opacity-60 transition-all"
-                >
-                  {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Criar e Abrir Obra →'}
-                </button>
-              </div>
-            </form>
+            ))}
           </div>
         </div>
       )}
+
+      {/* ── BOTTOM LEGEND (Image 2 style) ─────────────────────────────── */}
+      <div className="flex items-center gap-5 pt-3 border-t border-slate-200 text-xs text-slate-600 flex-wrap">
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-full bg-emerald-500" />
+          <span>Com tarefa agendada</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-full bg-amber-500" />
+          <span>Tarefa atrasada</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 rounded-full bg-red-500" />
+          <span>Sem tarefa agendada</span>
+        </div>
+      </div>
+
+      {/* ── CREATE LEAD MODAL (Uses Portal Modal) ─────────────────────── */}
+      <Modal
+        isOpen={showForm}
+        onClose={() => setShowForm(false)}
+        title="Adicionar Negócio"
+        subtitle="Registar nova oportunidade comercial no funil de vendas"
+        icon={<Briefcase className="w-5 h-5 text-blue-600" />}
+      >
+        <form onSubmit={handleCreateLead} className="space-y-3.5">
+          {[
+            { label: 'Nome do Cliente / Oportunidade *', key: 'clientName', type: 'text', placeholder: 'Ex: Sofia Ribeiro', required: true },
+            { label: 'Telefone de Contacto *', key: 'phone', type: 'tel', placeholder: '912 345 678', required: true },
+            { label: 'Email', key: 'email', type: 'email', placeholder: 'sofia@exemplo.pt', required: false },
+            { label: 'Morada da Obra *', key: 'address', type: 'text', placeholder: 'Rua Principal, 45, Porto', required: true },
+            { label: 'Valor Estimado do Negócio (€)', key: 'estimatedValue', type: 'number', placeholder: '45000', required: false },
+          ].map((field) => (
+            <div key={field.key}>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">{field.label}</label>
+              <input
+                type={field.type}
+                required={field.required}
+                placeholder={field.placeholder}
+                value={(form as Record<string, string>)[field.key]}
+                onChange={(e) => setForm((p) => ({ ...p, [field.key]: e.target.value }))}
+                className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-white border border-slate-300 focus:outline-none focus:border-blue-600"
+              />
+            </div>
+          ))}
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Canal de Origem</label>
+            <select
+              value={form.source}
+              onChange={(e) => setForm((p) => ({ ...p, source: e.target.value }))}
+              className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 bg-white border border-slate-300 focus:outline-none focus:border-blue-600"
+            >
+              {SOURCES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex gap-2.5 pt-3 border-t border-slate-200">
+            <button
+              type="button"
+              onClick={() => setShowForm(false)}
+              className="flex-1 py-2.5 rounded-[4px] text-xs font-semibold text-slate-600 hover:text-slate-900 border border-slate-300 hover:bg-slate-100 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={isPending}
+              className="flex-1 py-2.5 rounded-[4px] text-xs font-bold uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-700 flex items-center justify-center gap-2 disabled:opacity-60 transition-all shadow-md shadow-blue-600/20"
+            >
+              {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Criar Negócio'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* ── CONVERT TO OBRA MODAL (Uses Portal Modal) ─────────────────── */}
+      <Modal
+        isOpen={Boolean(showConvert)}
+        onClose={() => setShowConvert(null)}
+        title="Converter em Obra Oficial"
+        subtitle={`Adjudicar contrato para ${showConvert?.clientName || ''}`}
+        icon={<Building2 className="w-5 h-5 text-emerald-600" />}
+      >
+        <div className="p-3 rounded-[4px] bg-emerald-50 border border-emerald-200 mb-3.5">
+          <p className="text-xs text-slate-700">
+            Cliente: <strong className="text-slate-900">{showConvert?.clientName}</strong>
+          </p>
+          <p className="text-[11px] text-slate-500 mt-0.5">Morada: {showConvert?.address}</p>
+        </div>
+        <form onSubmit={handleConvert} className="space-y-3.5">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Título da Obra</label>
+            <input
+              type="text"
+              value={convertForm.title}
+              onChange={(e) => setConvertForm((p) => ({ ...p, title: e.target.value }))}
+              className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 bg-white border border-slate-300 focus:outline-none focus:border-emerald-600"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Valor Adjudicado do Contrato (€) *
+            </label>
+            <input
+              type="number"
+              required
+              value={convertForm.contractValue}
+              onChange={(e) => setConvertForm((p) => ({ ...p, contractValue: e.target.value }))}
+              placeholder="85000"
+              className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 bg-white border border-slate-300 focus:outline-none focus:border-emerald-600"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">NIF do Cliente</label>
+            <input
+              type="text"
+              value={convertForm.clientNIF}
+              onChange={(e) => setConvertForm((p) => ({ ...p, clientNIF: e.target.value }))}
+              placeholder="245 678 901"
+              className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 bg-white border border-slate-300 focus:outline-none focus:border-emerald-600"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Data de Início Prevista</label>
+            <input
+              type="date"
+              value={convertForm.startDate}
+              onChange={(e) => setConvertForm((p) => ({ ...p, startDate: e.target.value }))}
+              className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 bg-white border border-slate-300 focus:outline-none focus:border-emerald-600"
+            />
+          </div>
+          <div className="flex gap-2.5 pt-3 border-t border-slate-200">
+            <button
+              type="button"
+              onClick={() => setShowConvert(null)}
+              className="flex-1 py-2.5 rounded-[4px] text-xs font-semibold text-slate-600 hover:text-slate-900 border border-slate-300 hover:bg-slate-100 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={isPending}
+              className="flex-1 py-2.5 rounded-[4px] text-xs font-bold uppercase tracking-wider text-white bg-emerald-600 hover:bg-emerald-700 flex items-center justify-center gap-2 disabled:opacity-60 transition-all shadow-md shadow-emerald-600/20"
+            >
+              {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Criar e Abrir Obra →'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }

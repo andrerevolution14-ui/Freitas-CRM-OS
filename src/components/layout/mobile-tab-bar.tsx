@@ -24,17 +24,19 @@ export function MobileTabBar() {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 h-16 z-40 px-2 flex items-center justify-around"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 px-2 flex items-center justify-around"
       style={{
-        background: 'rgba(12, 14, 20, 0.88)',
+        background: 'rgba(255, 255, 255, 0.96)',
         backdropFilter: 'blur(20px) saturate(180%)',
         WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-        borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-        boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.4)',
+        borderTop: '1px solid #dbe1ea',
+        boxShadow: '0 -2px 12px rgba(0, 0, 0, 0.05)',
+        paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 6px)',
+        height: 'calc(3.85rem + max(env(safe-area-inset-bottom, 0px), 6px))',
       }}
     >
       {navItems.map((item) => {
-        const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
+        const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'))
         const Icon = item.icon
         return (
           <Link
@@ -42,19 +44,19 @@ export function MobileTabBar() {
             href={item.href}
             prefetch={true}
             className={cn(
-              'flex flex-col items-center justify-center flex-1 h-full gap-1 transition-all ios-interactive',
-              isActive ? 'text-blue-400' : 'text-slate-500 hover:text-slate-300'
+              'flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-all duration-150 active:scale-95 select-none',
+              isActive ? 'text-blue-600' : 'text-slate-500 hover:text-slate-800'
             )}
           >
             <div
               className={cn(
-                'p-1 rounded-xl transition-all',
-                isActive && 'bg-blue-500/15'
+                'p-1.5 rounded-[4px] transition-all',
+                isActive ? 'bg-blue-50 shadow-xs' : 'bg-transparent'
               )}
             >
-              <Icon className={cn('w-5 h-5', isActive ? 'text-blue-400' : 'text-slate-400')} />
+              <Icon className={cn('w-5 h-5 transition-transform', isActive ? 'text-blue-600 scale-105' : 'text-slate-400')} />
             </div>
-            <span className={cn('text-[10px] font-medium tracking-tight', isActive ? 'font-semibold text-blue-400' : 'text-slate-400')}>
+            <span className={cn('text-[10px] tracking-tight leading-tight', isActive ? 'font-bold text-blue-600' : 'font-medium text-slate-500')}>
               {item.label}
             </span>
           </Link>

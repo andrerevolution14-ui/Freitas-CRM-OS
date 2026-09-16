@@ -9,34 +9,34 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: 'Credenciais',
       credentials: {
-        email: { label: 'Email', type: 'email' },
+        username: { label: 'Utilizador', type: 'text' },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) return null
+        const identifier = (credentials?.username || (credentials as any)?.email || '').trim()
+        const cleanPassword = (credentials?.password || '').trim()
 
-        const cleanEmail = credentials.email.trim().toLowerCase()
-        const cleanPassword = credentials.password.trim()
+        if (!identifier || !cleanPassword) return null
 
         try {
           const user = await prisma.user.findFirst({
             where: {
-              email: {
-                equals: cleanEmail,
-                mode: 'insensitive',
-              },
+              OR: [
+                { username: { equals: identifier, mode: 'insensitive' } },
+                { email: { equals: identifier, mode: 'insensitive' } },
+              ],
             },
           })
 
           if (!user) {
-            console.log(`[AUTH] Utilizador não encontrado: ${cleanEmail}`)
+            console.log(`[AUTH] Utilizador não encontrado: ${identifier}`)
             return null
           }
 
           // Verificação estrita de segurança através de hash bcrypt
           const isValid = await bcrypt.compare(cleanPassword, user.password)
           if (!isValid) {
-            console.log(`[AUTH] Palavra-passe incorreta para: ${cleanEmail}`)
+            console.log(`[AUTH] Palavra-passe incorreta para: ${identifier}`)
             return null
           }
 
