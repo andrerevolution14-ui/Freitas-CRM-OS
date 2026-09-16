@@ -23,7 +23,6 @@ const TABS = [
   { id: 'financeiro', label: 'Financeiro', icon: TrendingUp },
   { id: 'despesas', label: 'Despesas', icon: Receipt },
   { id: 'tranches', label: 'Tranches', icon: Clock },
-  { id: 'proformas', label: 'Pró-Formas', icon: FileText },
   { id: 'documentos', label: 'Documentos', icon: FolderOpen },
   { id: 'notas', label: 'Notas', icon: StickyNote },
 ]
@@ -92,22 +91,18 @@ export function ObraDetailClient({ project: initialProject, subcontractors }: { 
   const [showTrancheForm, setShowTrancheForm] = useState(false)
   const [showSubPayForm, setShowSubPayForm] = useState(false)
   const [showNoteForm, setShowNoteForm] = useState(false)
-  const [showProFormaModal, setShowProFormaModal] = useState(false)
+  const [showDocModal, setShowDocModal] = useState(false)
   const [modalFile, setModalFile] = useState<File | null>(null)
-  const [modalDocForm, setModalDocForm] = useState({ title: '', isProForma: true, amount: '', category: 'CLIENTE' })
+  const [modalDocForm, setModalDocForm] = useState({ title: '' })
 
   async function handleModalUpload(e: React.FormEvent) {
     e.preventDefault()
     if (!modalFile || !modalDocForm.title.trim()) return
     setIsUploadingDoc(true)
 
-    const finalTitle = modalDocForm.isProForma
-      ? `[Pró-Forma] ${modalDocForm.title.trim()}${modalDocForm.amount ? ` (${formatCurrency(parseFloat(modalDocForm.amount))})` : ''}`
-      : modalDocForm.title.trim()
-
     const formData = new FormData()
     formData.append('file', modalFile)
-    formData.append('title', finalTitle)
+    formData.append('title', modalDocForm.title.trim())
     formData.append('projectId', project.id)
 
     try {
@@ -115,9 +110,9 @@ export function ObraDetailClient({ project: initialProject, subcontractors }: { 
       const data = await res.json()
       if (data.document) {
         setProject(p => ({ ...p, documents: [data.document, ...p.documents] }))
-        setShowProFormaModal(false)
+        setShowDocModal(false)
         setModalFile(null)
-        setModalDocForm({ title: '', isProForma: true, amount: '', category: 'CLIENTE' })
+        setModalDocForm({ title: '' })
       }
     } catch (err) {
       console.error('Upload error:', err)
@@ -232,13 +227,9 @@ export function ObraDetailClient({ project: initialProject, subcontractors }: { 
     if (!file || !docForm.title.trim()) return
     setIsUploadingDoc(true)
 
-    const finalTitle = docForm.isProForma
-      ? `[Pró-Forma] ${docForm.title.trim()}${docForm.amount ? ` (${formatCurrency(parseFloat(docForm.amount))})` : ''}`
-      : docForm.title.trim()
-
     const formData = new FormData()
     formData.append('file', file)
-    formData.append('title', finalTitle)
+    formData.append('title', docForm.title.trim())
     formData.append('projectId', project.id)
 
     try {
@@ -246,13 +237,12 @@ export function ObraDetailClient({ project: initialProject, subcontractors }: { 
       const data = await res.json()
       if (data.document) {
         setProject(p => ({ ...p, documents: [data.document, ...p.documents] }))
-        setDocForm({ title: '', isProForma: true, amount: '' })
+        setDocForm({ title: '', isProForma: false, amount: '' })
       }
     } catch (err) {
       console.error('Upload error:', err)
     } finally {
       setIsUploadingDoc(false)
-      // reset file input
       e.target.value = ''
     }
   }
@@ -285,14 +275,14 @@ export function ObraDetailClient({ project: initialProject, subcontractors }: { 
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => {
-              setModalDocForm({ title: '', isProForma: true, amount: '', category: 'CLIENTE' })
+              setModalDocForm({ title: '' })
               setModalFile(null)
-              setShowProFormaModal(true)
+              setShowDocModal(true)
             }}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-[4px] text-xs font-bold uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-all active:scale-95"
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-[4px] text-xs font-bold uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition-all active:scale-95"
           >
-            <FileText className="w-3.5 h-3.5" />
-            <span>+ Pró-Forma</span>
+            <FolderOpen className="w-3.5 h-3.5" />
+            <span>+ Documento</span>
           </button>
           <select value={project.status} onChange={e => handleStatusChange(e.target.value as ProjectStatus)}
             className="px-3 py-2 rounded-[4px] text-xs font-bold uppercase tracking-wider text-slate-800 bg-slate-50 border border-slate-300 focus:outline-none focus:border-blue-500 cursor-pointer">
@@ -385,206 +375,114 @@ export function ObraDetailClient({ project: initialProject, subcontractors }: { 
             </div>
           </Section>
 
-          {/* Section: Faturas Pró-Forma */}
+          {/* Section: Documentos da Obra */}
           <div className="md:col-span-2">
-            {(() => {
-              const proFormas = project.documents.filter(d => d.title.toLowerCase().includes('pró-forma') || d.title.toLowerCase().includes('proforma'))
-              return (
-                <Section
-                  title={`Faturas Pró-Forma (${proFormas.length})`}
-                  action={
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setModalDocForm({ title: '', isProForma: true, amount: '', category: 'CLIENTE' })
-                          setModalFile(null)
-                          setShowProFormaModal(true)
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] text-xs font-bold uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-700 shadow-xs transition-all active:scale-95"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>+ Pró-Forma</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab('proformas')}
-                        className="text-xs font-bold uppercase tracking-wider text-indigo-600 hover:text-indigo-800 px-2 py-1 hover:bg-indigo-50 rounded-[3px] transition-colors"
-                      >
-                        Ver Pró-Formas ({proFormas.length}) →
-                      </button>
-                    </div>
-                  }
+            <Section
+              title={`Documentos da Obra (${project.documents.length})`}
+              action={
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalDocForm({ title: '' })
+                      setModalFile(null)
+                      setShowDocModal(true)
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] text-xs font-bold uppercase tracking-wider text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 shadow-xs transition-all active:scale-95"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-blue-600" />
+                    <span>+ Documento</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('documentos')}
+                    className="text-xs font-bold uppercase tracking-wider text-blue-600 hover:text-blue-800 px-2 py-1 hover:bg-blue-50 rounded-[3px] transition-colors"
+                  >
+                    Ver Todos ({project.documents.length}) →
+                  </button>
+                </div>
+              }
+            >
+              {/* Informative Banner linking to General Pro-Formas library */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-blue-50/70 border border-blue-200 rounded-[4px] mb-4 text-xs text-blue-900">
+                <span className="flex items-center gap-2 font-medium">
+                  <FileText className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                  <span>Precisa de uma minuta de fatura pró-forma, auto de medição ou contrato tipo?</span>
+                </span>
+                <Link
+                  href="/pro-formas"
+                  className="font-bold text-blue-700 hover:text-blue-900 uppercase tracking-wider text-[11px] whitespace-nowrap hover:underline flex items-center gap-1"
                 >
-                  {proFormas.length === 0 ? (
-                    <div className="text-center py-7 px-4 rounded-[4px] bg-indigo-50/40 border border-dashed border-indigo-200">
-                      <FileText className="w-8 h-8 mx-auto mb-2 text-indigo-500" />
-                      <p className="text-xs text-slate-800 font-bold">Nenhuma fatura pró-forma registada nesta obra</p>
-                      <p className="text-[11px] text-slate-500 mt-0.5 mb-3">Emita ou arquive pró-formas para faturar tranches ou adjudicações.</p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setModalDocForm({ title: '', isProForma: true, amount: '', category: 'CLIENTE' })
-                          setModalFile(null)
-                          setShowProFormaModal(true)
-                        }}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[4px] text-xs font-bold uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-all active:scale-95"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>+ Adicionar Pró-Forma</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {proFormas.slice(0, 6).map(doc => (
-                        <div
-                          key={doc.id}
-                          className="p-3 rounded-[4px] border border-indigo-200 bg-white hover:border-indigo-400 flex flex-col justify-between gap-2 shadow-xs transition-all"
-                        >
-                          <div className="flex items-start gap-2.5 min-w-0">
-                            <div className="w-7 h-7 rounded-[4px] bg-indigo-100 text-indigo-700 flex items-center justify-center flex-shrink-0 text-xs font-bold">
-                              <FileText className="w-3.5 h-3.5" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-xs font-bold text-slate-900 truncate" title={doc.title}>
-                                {doc.title}
-                              </p>
-                              <p className="text-[10px] text-slate-500 mt-0.5">
-                                {formatDate(doc.createdAt)}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-between pt-1 border-t border-slate-100 mt-1">
-                            <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-[2px] bg-indigo-100 text-indigo-800">
-                              Pró-Forma
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <a
-                                href={doc.fileUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-xs font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-wider"
-                              >
-                                Abrir ↗
-                              </a>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteDoc(doc.id)}
-                                className="text-slate-400 hover:text-red-600 p-0.5"
-                                title="Eliminar"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </Section>
-              )
-            })()}
-          </div>
+                  <span>Biblioteca de Modelos Gerais →</span>
+                </Link>
+              </div>
 
-          {/* Section: Documentos Gerais da Obra */}
-          <div className="md:col-span-2">
-            {(() => {
-              const generalDocs = project.documents.filter(d => !d.title.toLowerCase().includes('pró-forma') && !d.title.toLowerCase().includes('proforma'))
-              return (
-                <Section
-                  title={`Documentos da Obra (${generalDocs.length})`}
-                  action={
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setModalDocForm({ title: '', isProForma: false, amount: '', category: 'CLIENTE' })
-                          setModalFile(null)
-                          setShowProFormaModal(true)
-                        }}
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] text-xs font-bold uppercase tracking-wider text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 shadow-xs transition-all active:scale-95"
-                      >
-                        <Plus className="w-3.5 h-3.5 text-blue-600" />
-                        <span>+ Documento</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setActiveTab('documentos')}
-                        className="text-xs font-bold uppercase tracking-wider text-blue-600 hover:text-blue-800 px-2 py-1 hover:bg-blue-50 rounded-[3px] transition-colors"
-                      >
-                        Ver Documentos ({generalDocs.length}) →
-                      </button>
-                    </div>
-                  }
-                >
-                  {generalDocs.length === 0 ? (
-                    <div className="text-center py-7 px-4 rounded-[4px] bg-slate-50 border border-dashed border-slate-200">
-                      <FolderOpen className="w-8 h-8 mx-auto mb-2 text-slate-400" />
-                      <p className="text-xs text-slate-700 font-bold">Nenhum documento geral anexado</p>
-                      <p className="text-[11px] text-slate-500 mt-0.5 mb-3">Anexe alvarás, plantas, cadernos de encargos ou contratos.</p>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setModalDocForm({ title: '', isProForma: false, amount: '', category: 'CLIENTE' })
-                          setModalFile(null)
-                          setShowProFormaModal(true)
-                        }}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[4px] text-xs font-bold uppercase tracking-wider text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-300 shadow-sm transition-all active:scale-95"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>+ Adicionar Documento</span>
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {generalDocs.slice(0, 6).map(doc => (
-                        <div
-                          key={doc.id}
-                          className="p-3 rounded-[4px] border border-slate-200 bg-white hover:border-slate-300 flex flex-col justify-between gap-2 shadow-xs transition-all"
-                        >
-                          <div className="flex items-start gap-2.5 min-w-0">
-                            <div className="w-7 h-7 rounded-[4px] bg-blue-50 text-blue-700 flex items-center justify-center flex-shrink-0 text-xs font-bold">
-                              <FolderOpen className="w-3.5 h-3.5" />
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-xs font-bold text-slate-900 truncate" title={doc.title}>
-                                {doc.title}
-                              </p>
-                              <p className="text-[10px] text-slate-500 mt-0.5">
-                                {formatDate(doc.createdAt)}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center justify-between pt-1 border-t border-slate-100 mt-1">
-                            <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-[2px] bg-slate-100 text-slate-600">
-                              Documento
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <a
-                                href={doc.fileUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-xs font-bold text-blue-600 hover:text-blue-800 uppercase tracking-wider"
-                              >
-                                Abrir ↗
-                              </a>
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteDoc(doc.id)}
-                                className="text-slate-400 hover:text-red-600 p-0.5"
-                                title="Eliminar"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            </div>
-                          </div>
+              {project.documents.length === 0 ? (
+                <div className="text-center py-7 px-4 rounded-[4px] bg-slate-50 border border-dashed border-slate-200">
+                  <FolderOpen className="w-8 h-8 mx-auto mb-2 text-slate-400" />
+                  <p className="text-xs text-slate-700 font-bold">Nenhum documento anexado a esta obra</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5 mb-3">Anexe alvarás, plantas, cadernos de encargos, contratos ou autos.</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModalDocForm({ title: '' })
+                      setModalFile(null)
+                      setShowDocModal(true)
+                    }}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[4px] text-xs font-bold uppercase tracking-wider text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-300 shadow-sm transition-all active:scale-95"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>+ Adicionar Documento</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {project.documents.slice(0, 6).map(doc => (
+                    <div
+                      key={doc.id}
+                      className="p-3 rounded-[4px] border border-slate-200 bg-white hover:border-slate-300 flex flex-col justify-between gap-2 shadow-xs transition-all"
+                    >
+                      <div className="flex items-start gap-2.5 min-w-0">
+                        <div className="w-7 h-7 rounded-[4px] bg-blue-50 text-blue-700 flex items-center justify-center flex-shrink-0 text-xs font-bold">
+                          <FolderOpen className="w-3.5 h-3.5" />
                         </div>
-                      ))}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-bold text-slate-900 truncate" title={doc.title}>
+                            {doc.title}
+                          </p>
+                          <p className="text-[10px] text-slate-500 mt-0.5">
+                            {formatDate(doc.createdAt)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-100 mt-1">
+                        <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-[2px] bg-slate-100 text-slate-600">
+                          Ficheiro
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={doc.fileUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-xs font-bold text-blue-600 hover:text-blue-800 uppercase tracking-wider"
+                          >
+                            Abrir ↗
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteDoc(doc.id)}
+                            className="text-slate-400 hover:text-red-600 p-0.5"
+                            title="Eliminar"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  )}
-                </Section>
-              )
-            })()}
+                  ))}
+                </div>
+              )}
+            </Section>
           </div>
         </div>
       )}
@@ -893,259 +791,134 @@ export function ObraDetailClient({ project: initialProject, subcontractors }: { 
         </div>
       )}
 
-      {/* Tab: Faturas Pró-Forma */}
-      {activeTab === 'proformas' && (() => {
-        const proFormas = project.documents.filter(d => d.title.toLowerCase().includes('pró-forma') || d.title.toLowerCase().includes('proforma'))
-
-        return (
-          <div className="space-y-4">
-            <Section
-              title={`Faturas Pró-Forma da Obra (${proFormas.length})`}
-              action={
+      {/* Tab: Documentos da Obra */}
+      {activeTab === 'documentos' && (
+        <div className="space-y-4">
+          <Section
+            title={`Documentos da Obra (${project.documents.length})`}
+            action={
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => {
-                    setModalDocForm({ title: '', isProForma: true, amount: '', category: 'CLIENTE' })
+                    setModalDocForm({ title: '' })
                     setModalFile(null)
-                    setShowProFormaModal(true)
+                    setShowDocModal(true)
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] text-xs font-bold uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm transition-all active:scale-95"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] text-xs font-bold uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-700 shadow-xs transition-all active:scale-95"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>+ Pró-Forma</span>
-                </button>
-              }
-            >
-              {/* Quick Upload Box dedicated for Pró-Formas */}
-              <div className="p-4 rounded-[4px] bg-indigo-50/40 border border-indigo-200 mb-5">
-                <span className="text-xs font-bold uppercase tracking-wider text-indigo-900 flex items-center gap-2 mb-3">
-                  <FileText className="w-4 h-4 text-indigo-600" />
-                  Carregar Nova Fatura Pró-Forma
-                </span>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 mb-3">
-                  <div className="sm:col-span-2">
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1">
-                      Identificação / Nº da Pró-Forma *
-                    </label>
-                    <input
-                      value={docForm.title}
-                      onChange={e => setDocForm(p => ({ ...p, title: e.target.value, isProForma: true }))}
-                      placeholder="Ex: Pró-Forma 01/2026 - Tranche Adjudicação"
-                      className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-white border border-slate-300 focus:outline-none focus:border-indigo-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1">
-                      Valor da Pró-Forma (€)
-                    </label>
-                    <input
-                      type="number"
-                      step="any"
-                      value={docForm.amount}
-                      onChange={e => setDocForm(p => ({ ...p, amount: e.target.value, isProForma: true }))}
-                      placeholder="Ex: 15000"
-                      className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-white border border-slate-300 focus:outline-none focus:border-indigo-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between gap-3 pt-1">
-                  <p className="text-[11px] text-slate-500">Suporta PDF, Imagens (JPG, PNG) e DOCX.</p>
-                  <label
-                    className={cn(
-                      'flex items-center gap-2 px-4 py-2 rounded-[4px] text-xs font-bold uppercase tracking-wider cursor-pointer transition-all',
-                      docForm.title.trim() && !isUploadingDoc
-                        ? 'text-white bg-indigo-600 hover:bg-indigo-700 shadow-sm active:scale-95'
-                        : 'text-slate-400 bg-slate-200 cursor-not-allowed border border-slate-300'
-                    )}
-                  >
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>{isUploadingDoc ? 'A enviar...' : 'Selecionar & Enviar Pró-Forma'}</span>
-                    <input
-                      type="file"
-                      disabled={!docForm.title.trim() || isUploadingDoc}
-                      className="hidden"
-                      onChange={handleFileUpload}
-                    />
-                  </label>
-                </div>
-              </div>
-
-              {proFormas.length === 0 ? (
-                <div className="text-center py-10 rounded-[4px] bg-slate-50 border border-dashed border-indigo-200">
-                  <FileText className="w-8 h-8 mx-auto mb-2 text-indigo-400" />
-                  <p className="text-xs text-slate-800 font-bold">Nenhuma fatura pró-forma registada nesta obra.</p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Utilize o formulário acima ou o botão "+ Pró-Forma" para arquivar.</p>
-                </div>
-              ) : (
-                <div className="space-y-2.5">
-                  {proFormas.map(doc => (
-                    <div
-                      key={doc.id}
-                      className="flex items-center justify-between gap-3 p-3.5 rounded-[4px] border border-indigo-200 bg-white hover:border-indigo-400 transition-all shadow-xs"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-8 h-8 rounded-[4px] flex items-center justify-center flex-shrink-0 bg-indigo-100 text-indigo-700 font-bold">
-                          <FileText className="w-4 h-4" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-xs sm:text-sm font-bold text-slate-900 truncate max-w-[280px] sm:max-w-md">
-                              {doc.title}
-                            </p>
-                            <span className="px-2 py-0.5 rounded-[3px] text-[10px] font-bold bg-indigo-100 text-indigo-700 border border-indigo-200 uppercase">
-                              Pró-Forma
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-slate-500 mt-0.5">
-                            {doc.fileType.split('/')[1]?.toUpperCase() || 'DOCUMENTO'} · Adicionado a {formatDate(doc.createdAt)}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <a
-                          href={doc.fileUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="px-3 py-1.5 rounded-[4px] text-xs font-bold uppercase tracking-wider bg-slate-100 hover:bg-slate-200 text-indigo-700 border border-slate-200 transition-all inline-flex items-center gap-1"
-                        >
-                          <span>Abrir</span>
-                        </a>
-                        <button
-                          onClick={() => handleDeleteDoc(doc.id)}
-                          className="p-1.5 rounded-[4px] text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all"
-                          title="Eliminar documento"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Section>
-          </div>
-        )
-      })()}
-
-      {/* Tab: Documentos Gerais */}
-      {activeTab === 'documentos' && (() => {
-        const generalDocs = project.documents.filter(d => !d.title.toLowerCase().includes('pró-forma') && !d.title.toLowerCase().includes('proforma'))
-
-        return (
-          <div className="space-y-4">
-            <Section
-              title={`Documentos da Obra (${generalDocs.length})`}
-              action={
-                <button
-                  type="button"
-                  onClick={() => {
-                    setModalDocForm({ title: '', isProForma: false, amount: '', category: 'CLIENTE' })
-                    setModalFile(null)
-                    setShowProFormaModal(true)
-                  }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] text-xs font-bold uppercase tracking-wider text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-300 shadow-sm transition-all active:scale-95"
-                >
-                  <Plus className="w-3.5 h-3.5 text-blue-600" />
                   <span>+ Documento</span>
                 </button>
-              }
-            >
-              {/* Quick Upload Box for General Docs */}
-              <div className="p-4 rounded-[4px] bg-slate-50 border border-slate-200 mb-5">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2 mb-3">
-                  <FolderOpen className="w-4 h-4 text-blue-600" />
-                  Carregar Documento Geral (Plantas, Licenças, Contratos)
-                </span>
+              </div>
+            }
+          >
+            {/* Template Library Reference Banner */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-blue-50/70 border border-blue-200 rounded-[4px] mb-5 text-xs text-blue-900">
+              <span className="flex items-center gap-2 font-medium">
+                <FileText className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                <span>Precisa de minutas de fatura pró-forma, autos de medição ou contratos tipo?</span>
+              </span>
+              <Link
+                href="/pro-formas"
+                className="font-bold text-blue-700 hover:text-blue-900 uppercase tracking-wider text-[11px] whitespace-nowrap hover:underline flex items-center gap-1"
+              >
+                <span>Aceder aos Modelos Gerais →</span>
+              </Link>
+            </div>
 
-                <div className="mb-3">
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1">
-                    Título do Documento *
-                  </label>
-                  <input
-                    value={docForm.title}
-                    onChange={e => setDocForm(p => ({ ...p, title: e.target.value, isProForma: false }))}
-                    placeholder="Ex: Contrato de Empreitada Assinado, Planta Arquitetura..."
-                    className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-white border border-slate-300 focus:outline-none focus:border-blue-500"
-                  />
-                </div>
+            {/* Quick Upload Box for Project Docs */}
+            <div className="p-4 rounded-[4px] bg-slate-50 border border-slate-200 mb-5">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-2 mb-3">
+                <FolderOpen className="w-4 h-4 text-blue-600" />
+                Carregar Novo Documento (Plantas, Licenças, Contratos, Ficheiros)
+              </span>
 
-                <div className="flex items-center justify-between gap-3 pt-1">
-                  <p className="text-[11px] text-slate-500">Suporta PDF, Imagens (JPG, PNG) e DOCX.</p>
-                  <label
-                    className={cn(
-                      'flex items-center gap-2 px-4 py-2 rounded-[4px] text-xs font-bold uppercase tracking-wider cursor-pointer transition-all',
-                      docForm.title.trim() && !isUploadingDoc
-                        ? 'text-white bg-blue-600 hover:bg-blue-500 shadow-sm active:scale-95'
-                        : 'text-slate-400 bg-slate-200 cursor-not-allowed border border-slate-300'
-                    )}
-                  >
-                    <Upload className="w-3.5 h-3.5" />
-                    <span>{isUploadingDoc ? 'A enviar...' : 'Selecionar & Enviar Ficheiro'}</span>
-                    <input
-                      type="file"
-                      disabled={!docForm.title.trim() || isUploadingDoc}
-                      className="hidden"
-                      onChange={handleFileUpload}
-                    />
-                  </label>
-                </div>
+              <div className="mb-3">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1">
+                  Título do Documento *
+                </label>
+                <input
+                  value={docForm.title}
+                  onChange={e => setDocForm(p => ({ ...p, title: e.target.value }))}
+                  placeholder="Ex: Contrato de Empreitada Assinado, Planta Arquitetura..."
+                  className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-white border border-slate-300 focus:outline-none focus:border-blue-500"
+                />
               </div>
 
-              {generalDocs.length === 0 ? (
-                <div className="text-center py-10 rounded-[4px] bg-slate-50 border border-dashed border-slate-200">
-                  <FolderOpen className="w-8 h-8 mx-auto mb-2 text-slate-400" />
-                  <p className="text-xs text-slate-600 font-medium">Nenhum documento geral anexado nesta obra.</p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Utilize o formulário acima para anexar alvarás, plantas ou contratos.</p>
-                </div>
-              ) : (
-                <div className="space-y-2.5">
-                  {generalDocs.map(doc => (
-                    <div
-                      key={doc.id}
-                      className="flex items-center justify-between gap-3 p-3.5 rounded-[4px] border border-slate-200 bg-white hover:border-slate-300 transition-all shadow-xs"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-8 h-8 rounded-[4px] flex items-center justify-center flex-shrink-0 bg-blue-50 text-blue-700 font-bold">
-                          <FolderOpen className="w-4 h-4" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs sm:text-sm font-bold text-slate-900 truncate max-w-[280px] sm:max-w-md">
-                            {doc.title}
-                          </p>
-                          <p className="text-[11px] text-slate-500 mt-0.5">
-                            {doc.fileType.split('/')[1]?.toUpperCase() || 'DOCUMENTO'} · Adicionado a {formatDate(doc.createdAt)}
-                          </p>
-                        </div>
-                      </div>
+              <div className="flex items-center justify-between gap-3 pt-1">
+                <p className="text-[11px] text-slate-500">Suporta PDF, Imagens (JPG, PNG) e DOCX.</p>
+                <label
+                  className={cn(
+                    'flex items-center gap-2 px-4 py-2 rounded-[4px] text-xs font-bold uppercase tracking-wider cursor-pointer transition-all',
+                    docForm.title.trim() && !isUploadingDoc
+                      ? 'text-white bg-blue-600 hover:bg-blue-500 shadow-sm active:scale-95'
+                      : 'text-slate-400 bg-slate-200 cursor-not-allowed border border-slate-300'
+                  )}
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>{isUploadingDoc ? 'A enviar...' : 'Selecionar & Enviar Ficheiro'}</span>
+                  <input
+                    type="file"
+                    disabled={!docForm.title.trim() || isUploadingDoc}
+                    className="hidden"
+                    onChange={handleFileUpload}
+                  />
+                </label>
+              </div>
+            </div>
 
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <a
-                          href={doc.fileUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="px-3 py-1.5 rounded-[4px] text-xs font-bold uppercase tracking-wider bg-slate-100 hover:bg-slate-200 text-blue-700 border border-slate-200 transition-all inline-flex items-center gap-1"
-                        >
-                          <span>Abrir</span>
-                        </a>
-                        <button
-                          onClick={() => handleDeleteDoc(doc.id)}
-                          className="p-1.5 rounded-[4px] text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all"
-                          title="Eliminar documento"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+            {project.documents.length === 0 ? (
+              <div className="text-center py-10 rounded-[4px] bg-slate-50 border border-dashed border-slate-200">
+                <FolderOpen className="w-8 h-8 mx-auto mb-2 text-slate-400" />
+                <p className="text-xs text-slate-600 font-medium">Nenhum documento anexado nesta obra.</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">Utilize o formulário acima para anexar alvarás, plantas ou contratos.</p>
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {project.documents.map(doc => (
+                  <div
+                    key={doc.id}
+                    className="flex items-center justify-between gap-3 p-3.5 rounded-[4px] border border-slate-200 bg-white hover:border-slate-300 transition-all shadow-xs"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-[4px] flex items-center justify-center flex-shrink-0 bg-blue-50 text-blue-700 font-bold">
+                        <FolderOpen className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs sm:text-sm font-bold text-slate-900 truncate max-w-[280px] sm:max-w-md">
+                          {doc.title}
+                        </p>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          {doc.fileType.split('/')[1]?.toUpperCase() || 'DOCUMENTO'} · Adicionado a {formatDate(doc.createdAt)}
+                        </p>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </Section>
-          </div>
-        )
-      })()}
+
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <a
+                        href={doc.fileUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="px-3 py-1.5 rounded-[4px] text-xs font-bold uppercase tracking-wider bg-slate-100 hover:bg-slate-200 text-blue-700 border border-slate-200 transition-all inline-flex items-center gap-1"
+                      >
+                        <span>Abrir</span>
+                      </a>
+                      <button
+                        onClick={() => handleDeleteDoc(doc.id)}
+                        className="p-1.5 rounded-[4px] text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all"
+                        title="Eliminar documento"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Section>
+        </div>
+      )}
 
       {/* Tab: Notas */}
       {activeTab === 'notas' && (
@@ -1212,52 +985,28 @@ export function ObraDetailClient({ project: initialProject, subcontractors }: { 
         </Section>
       )}
 
-      {/* Modal: Adicionar Fatura Pró-Forma / Documento */}
+      {/* Modal: Adicionar Documento à Obra */}
       <Modal
-        isOpen={showProFormaModal}
-        onClose={() => setShowProFormaModal(false)}
-        title="Adicionar Fatura Pró-Forma / Documento"
-        subtitle={`Registar documento ou pró-forma para ${project.title}`}
-        icon={<FileText className="w-5 h-5 text-indigo-600" />}
+        isOpen={showDocModal}
+        onClose={() => setShowDocModal(false)}
+        title="Adicionar Documento à Obra"
+        subtitle={`Anexar ficheiro para ${project.title}`}
+        icon={<FolderOpen className="w-5 h-5 text-blue-600" />}
         maxWidth="md"
       >
         <form onSubmit={handleModalUpload} className="space-y-4">
-          {/* Document type switcher */}
-          <div className="flex items-center p-1 bg-slate-100 rounded-[4px] border border-slate-200">
-            <button
-              type="button"
-              onClick={() => setModalDocForm(p => ({ ...p, isProForma: true }))}
-              className={cn(
-                'flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-[3px] transition-all flex items-center justify-center gap-1.5',
-                modalDocForm.isProForma ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
-              )}
-            >
-              <span>📄 Fatura Pró-Forma</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setModalDocForm(p => ({ ...p, isProForma: false }))}
-              className={cn(
-                'flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-[3px] transition-all flex items-center justify-center gap-1.5',
-                !modalDocForm.isProForma ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
-              )}
-            >
-              <span>📑 Documento Geral</span>
-            </button>
-          </div>
-
           {/* File selector dropzone */}
           <div>
             <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-              Ficheiro Anexo (PDF, Imagem ou Word) <span className="text-red-500">*</span>
+              Ficheiro Anexo (PDF, Imagem, Word ou Excel) <span className="text-red-500">*</span>
             </label>
             <label className={cn(
               "border-2 border-dashed rounded-[4px] p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all",
-              modalFile ? "border-indigo-400 bg-indigo-50/50" : "border-slate-300 hover:border-indigo-400 bg-slate-50 hover:bg-slate-100/60"
+              modalFile ? "border-blue-400 bg-blue-50/50" : "border-slate-300 hover:border-blue-400 bg-slate-50 hover:bg-slate-100/60"
             )}>
               <input
                 type="file"
-                accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
+                accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,.xls,.xlsx"
                 className="hidden"
                 onChange={(e) => {
                   const f = e.target.files?.[0]
@@ -1265,15 +1014,15 @@ export function ObraDetailClient({ project: initialProject, subcontractors }: { 
                     setModalFile(f)
                     if (!modalDocForm.title.trim()) {
                       const cleanName = f.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ")
-                      setModalDocForm(p => ({ ...p, title: cleanName }))
+                      setModalDocForm({ title: cleanName })
                     }
                   }
                 }}
               />
               {modalFile ? (
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-[4px] bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
-                    <FileText className="w-5 h-5" />
+                  <div className="w-10 h-10 rounded-[4px] bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+                    <FolderOpen className="w-5 h-5" />
                   </div>
                   <div className="text-left">
                     <p className="text-xs font-bold text-slate-900 truncate max-w-[240px]">{modalFile.name}</p>
@@ -1284,7 +1033,7 @@ export function ObraDetailClient({ project: initialProject, subcontractors }: { 
                 <div className="space-y-1">
                   <Upload className="w-7 h-7 mx-auto text-slate-400" />
                   <p className="text-xs font-bold text-slate-700">Clique para selecionar ficheiro</p>
-                  <p className="text-[11px] text-slate-400">PDF, JPG, PNG ou DOCX</p>
+                  <p className="text-[11px] text-slate-400">PDF, JPG, PNG, DOCX ou XLSX</p>
                 </div>
               )}
             </label>
@@ -1294,57 +1043,24 @@ export function ObraDetailClient({ project: initialProject, subcontractors }: { 
           <div className="space-y-3">
             <div>
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1">
-                {modalDocForm.isProForma ? 'Identificação / Número da Pró-Forma *' : 'Título do Documento *'}
+                Título do Documento *
               </label>
               <input
                 type="text"
                 required
                 value={modalDocForm.title}
-                onChange={(e) => setModalDocForm(p => ({ ...p, title: e.target.value }))}
-                placeholder={modalDocForm.isProForma ? 'Ex: Pró-Forma nº 03/2026 - Carpintarias' : 'Ex: Contrato assinado, Plantas...'}
-                className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-white border border-slate-300 focus:outline-none focus:border-indigo-600"
+                onChange={(e) => setModalDocForm({ title: e.target.value })}
+                placeholder="Ex: Alvará de Construção, Contrato Assinado, Planta Arquitetura..."
+                className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-white border border-slate-300 focus:outline-none focus:border-blue-600"
               />
             </div>
-
-            {modalDocForm.isProForma && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1">
-                    Valor da Pró-Forma (€)
-                  </label>
-                  <input
-                    type="number"
-                    step="any"
-                    value={modalDocForm.amount}
-                    onChange={(e) => setModalDocForm(p => ({ ...p, amount: e.target.value }))}
-                    placeholder="Ex: 8500"
-                    className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-white border border-slate-300 focus:outline-none focus:border-indigo-600"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1">
-                    Entidade / Origem
-                  </label>
-                  <select
-                    value={modalDocForm.category}
-                    onChange={(e) => setModalDocForm(p => ({ ...p, category: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 bg-white border border-slate-300 focus:outline-none focus:border-indigo-600"
-                  >
-                    <option value="CLIENTE">Cliente (Recebimento)</option>
-                    <option value="SUBEMPREITEIRO">Subempreiteiro / Mão de Obra</option>
-                    <option value="FORNECEDOR">Fornecedor / Material</option>
-                    <option value="OUTRO">Outro</option>
-                  </select>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Action buttons */}
           <div className="flex items-center gap-2.5 pt-3 border-t border-slate-200">
             <button
               type="button"
-              onClick={() => setShowProFormaModal(false)}
+              onClick={() => setShowDocModal(false)}
               className="flex-1 py-2.5 rounded-[4px] text-xs font-semibold text-slate-700 hover:text-slate-900 border border-slate-300 hover:bg-slate-50 transition-colors"
             >
               Cancelar
@@ -1352,7 +1068,7 @@ export function ObraDetailClient({ project: initialProject, subcontractors }: { 
             <button
               type="submit"
               disabled={isUploadingDoc || !modalFile || !modalDocForm.title.trim()}
-              className="flex-1 py-2.5 rounded-[4px] text-xs font-bold uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-700 active:scale-98 shadow-md shadow-indigo-600/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 py-2.5 rounded-[4px] text-xs font-bold uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-700 active:scale-98 shadow-md shadow-blue-600/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {isUploadingDoc ? (
                 <>
@@ -1362,7 +1078,7 @@ export function ObraDetailClient({ project: initialProject, subcontractors }: { 
               ) : (
                 <>
                   <Upload className="w-4 h-4" />
-                  <span>Carregar Pró-Forma</span>
+                  <span>Carregar Documento</span>
                 </>
               )}
             </button>

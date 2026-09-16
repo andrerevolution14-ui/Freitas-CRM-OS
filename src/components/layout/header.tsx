@@ -132,7 +132,7 @@ export function Header({ title }: { title?: string }) {
                     className="flex items-center gap-2.5 px-2.5 py-2 rounded-[3px] text-xs font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors"
                   >
                     <FileText className="w-4 h-4 text-indigo-600" />
-                    <span>Faturas Pró-Forma</span>
+                    <span>Modelos & Pró-Formas</span>
                   </Link>
                 </div>
 

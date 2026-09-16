@@ -1,353 +1,359 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import Link from 'next/link'
 import {
-  FileText, Plus, Search, X, Upload, Loader2, Trash2, ExternalLink,
-  HardHat, Calendar, Euro, Filter, ArrowUpRight
+  FileText, Plus, Search, X, Upload, Loader2, Trash2, Download,
+  ExternalLink, Copy, Check, FileCheck, Layers, BookOpen, Sparkles
 } from 'lucide-react'
-import { deleteDocument } from '@/server/actions/projects'
-import { formatCurrency, formatDate, cn } from '@/lib/utils'
+import { GeneralTemplate, deleteGeneralTemplate } from '@/server/actions/templates'
 import { Modal } from '@/components/ui/modal'
+import { formatDate, cn } from '@/lib/utils'
 
-type ProFormaDoc = {
-  id: string
-  projectId: string
-  title: string
-  fileUrl: string
-  fileType: string
-  createdAt: string | Date
-  project: {
-    id: string
-    title: string
-    clientName: string
-    address: string
-    status: string
-  }
-}
+const CATEGORIES = [
+  'Todos',
+  'Pró-Formas',
+  'Autos de Medição',
+  'Contratos & Minutas',
+  'Termos & Garantias',
+]
 
-type ProjectSummary = {
-  id: string
-  title: string
-  clientName: string
-}
-
-export function ProFormasClient({
-  initialDocuments,
-  projects,
-}: {
-  initialDocuments: ProFormaDoc[]
-  projects: ProjectSummary[]
-}) {
-  const [documents, setDocuments] = useState(initialDocuments)
+export function ProFormasClient({ initialTemplates }: { initialTemplates: GeneralTemplate[] }) {
+  const [templates, setTemplates] = useState<GeneralTemplate[]>(initialTemplates)
   const [search, setSearch] = useState('')
-  const [selectedProject, setSelectedProject] = useState('ALL')
-  const [typeFilter, setTypeFilter] = useState<'ALL' | 'PRO_FORMA' | 'GERAL'>('PRO_FORMA')
+  const [selectedCategory, setSelectedCategory] = useState('Todos')
+  const [copiedId, setCopiedId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   // Modal State
   const [showModal, setShowModal] = useState(false)
-  const [modalProjectId, setModalProjectId] = useState(projects[0]?.id || '')
-  const [modalFile, setModalFile] = useState<File | null>(null)
   const [modalTitle, setModalTitle] = useState('')
-  const [modalAmount, setModalAmount] = useState('')
-  const [modalIsProForma, setModalIsProForma] = useState(true)
+  const [modalCategory, setModalCategory] = useState('Pró-Formas')
+  const [modalDescription, setModalDescription] = useState('')
+  const [modalFile, setModalFile] = useState<File | null>(null)
   const [isUploading, setIsUploading] = useState(false)
 
-  // Filtered docs
-  const filtered = documents.filter((doc) => {
-    const isPro = doc.title.toLowerCase().includes('pró-forma') || doc.title.toLowerCase().includes('proforma')
-    if (typeFilter === 'PRO_FORMA' && !isPro) return false
-    if (typeFilter === 'GERAL' && isPro) return false
-    if (selectedProject !== 'ALL' && doc.projectId !== selectedProject) return false
-
+  // Filter templates
+  const filtered = templates.filter((tpl) => {
+    if (selectedCategory !== 'Todos' && tpl.category !== selectedCategory) {
+      return false
+    }
     if (search.trim()) {
       const q = search.toLowerCase()
-      const matchTitle = doc.title.toLowerCase().includes(q)
-      const matchClient = doc.project?.clientName?.toLowerCase().includes(q)
-      const matchProject = doc.project?.title?.toLowerCase().includes(q)
-      return matchTitle || matchClient || matchProject
+      const matchTitle = tpl.title.toLowerCase().includes(q)
+      const matchDesc = tpl.description.toLowerCase().includes(q)
+      const matchFile = tpl.fileName.toLowerCase().includes(q)
+      return matchTitle || matchDesc || matchFile
     }
     return true
   })
 
-  // Extract amounts from pro-forma titles
-  const totalProFormasCount = documents.filter(d =>
-    d.title.toLowerCase().includes('pró-forma') || d.title.toLowerCase().includes('proforma')
-  ).length
+  const proFormasCount = templates.filter((t) => t.category === 'Pró-Formas').length
+  const autosCount = templates.filter((t) => t.category === 'Autos de Medição').length
+  const contratosCount = templates.filter((t) => t.category === 'Contratos & Minutas' || t.category === 'Termos & Garantias').length
+
+  function handleCopyLink(fileUrl: string, id: string) {
+    const fullUrl = `${window.location.origin}${fileUrl}`
+    navigator.clipboard.writeText(fullUrl)
+    setCopiedId(id)
+    setTimeout(() => setCopiedId(null), 2000)
+  }
 
   async function handleUpload(e: React.FormEvent) {
     e.preventDefault()
-    if (!modalFile || !modalTitle.trim() || !modalProjectId) return
+    if (!modalFile || !modalTitle.trim()) return
+
     setIsUploading(true)
-
-    const finalTitle = modalIsProForma
-      ? `[Pró-Forma] ${modalTitle.trim()}${modalAmount ? ` (${formatCurrency(parseFloat(modalAmount))})` : ''}`
-      : modalTitle.trim()
-
     const formData = new FormData()
     formData.append('file', modalFile)
-    formData.append('title', finalTitle)
-    formData.append('projectId', modalProjectId)
+    formData.append('title', modalTitle.trim())
+    formData.append('category', modalCategory)
+    formData.append('description', modalDescription.trim())
 
     try {
-      const res = await fetch('/api/upload', { method: 'POST', body: formData })
+      const res = await fetch('/api/upload-template', {
+        method: 'POST',
+        body: formData,
+      })
       const data = await res.json()
-      if (data.document) {
-        const foundProject = projects.find(p => p.id === modalProjectId)
-        const newDoc: ProFormaDoc = {
-          ...data.document,
-          project: {
-            id: modalProjectId,
-            title: foundProject?.title || 'Obra',
-            clientName: foundProject?.clientName || 'Cliente',
-            address: '',
-            status: 'EM_EXECUCAO',
-          },
-        }
-        setDocuments(prev => [newDoc, ...prev])
+      if (data.template) {
+        setTemplates((prev) => [data.template, ...prev])
         setShowModal(false)
-        setModalFile(null)
         setModalTitle('')
-        setModalAmount('')
+        setModalDescription('')
+        setModalCategory('Pró-Formas')
+        setModalFile(null)
+      } else {
+        alert(data.error || 'Erro ao carregar modelo')
       }
     } catch (err) {
       console.error('Upload error:', err)
+      alert('Erro de comunicação ao carregar modelo')
     } finally {
       setIsUploading(false)
     }
   }
 
-  async function handleDelete(id: string, projectId: string) {
-    if (!confirm('Tem a certeza de que pretende eliminar este documento?')) return
+  function handleDelete(id: string) {
+    if (!confirm('Tem a certeza que deseja remover este modelo da biblioteca geral?')) return
+
     startTransition(async () => {
-      await deleteDocument(id, projectId)
-      setDocuments(prev => prev.filter(d => d.id !== id))
+      await deleteGeneralTemplate(id)
+      setTemplates((prev) => prev.filter((t) => t.id !== id))
     })
   }
 
+  function getBadgeColor(category: string) {
+    switch (category) {
+      case 'Pró-Formas':
+        return 'bg-blue-50 text-blue-700 border-blue-200'
+      case 'Autos de Medição':
+        return 'bg-emerald-50 text-emerald-700 border-emerald-200'
+      case 'Contratos & Minutas':
+        return 'bg-purple-50 text-purple-700 border-purple-200'
+      case 'Termos & Garantias':
+        return 'bg-amber-50 text-amber-700 border-amber-200'
+      default:
+        return 'bg-slate-50 text-slate-700 border-slate-200'
+    }
+  }
+
+  function getFileExtBadge(fileName: string) {
+    const ext = fileName.split('.').pop()?.toUpperCase() || 'DOC'
+    if (ext === 'PDF') return 'bg-red-50 text-red-700 border-red-200'
+    if (ext === 'XLSX' || ext === 'XLS') return 'bg-emerald-50 text-emerald-700 border-emerald-200'
+    if (ext === 'DOCX' || ext === 'DOC') return 'bg-blue-50 text-blue-700 border-blue-200'
+    return 'bg-slate-50 text-slate-700 border-slate-200'
+  }
+
   return (
-    <div className="space-y-5 animate-fade-in">
-      {/* Top Search & Filter Bar */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 p-3 bg-white border border-slate-200 shadow-xs rounded-[4px]">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Pesquisar por número, descrição, obra ou cliente..."
-            className="w-full pl-9 pr-8 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:border-indigo-600"
-          />
-          {search && (
-            <button onClick={() => setSearch('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700">
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
+    <div className="space-y-6 animate-fade-in pb-12">
+      {/* Top Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 bg-white border border-slate-200 rounded-[4px] shadow-sm">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="px-2 py-0.5 rounded-[3px] text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200">
+              Biblioteca Central de Minutas
+            </span>
+            <span className="flex items-center gap-1 text-[11px] font-semibold text-slate-500">
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              Documentos Gerais & Exemplos Tipo
+            </span>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            Faturas Pró-Forma & Documentos Modelo
+          </h1>
+          <p className="text-xs text-slate-500 mt-1 max-w-2xl">
+            Repositório de modelos e minutas de uso geral. Documentos exemplo prontos para descarregar, preencher e utilizar nas propostas, adiantamentos e cobranças da empresa (não associados a nenhuma obra específica).
+          </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Obra Filter Dropdown */}
-          <div className="flex items-center gap-1 text-xs">
-            <HardHat className="w-3.5 h-3.5 text-slate-400 hidden sm:block" />
-            <select
-              value={selectedProject}
-              onChange={(e) => setSelectedProject(e.target.value)}
-              className="px-2.5 py-2 rounded-[4px] text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 focus:bg-white focus:outline-none focus:border-indigo-600 cursor-pointer"
-            >
-              <option value="ALL">Todas as Obras ({projects.length})</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.title}
-                </option>
-              ))}
-            </select>
-          </div>
+        <button
+          onClick={() => setShowModal(true)}
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold uppercase tracking-wider rounded-[4px] shadow-sm transition-all active:scale-95"
+        >
+          <Plus className="w-4 h-4" />
+          <span>+ Adicionar Modelo</span>
+        </button>
+      </div>
 
-          <div className="text-xs text-slate-500 font-medium px-1">
-            <span className="text-slate-900 font-bold">{filtered.length}</span> ficheiros
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-white border border-slate-200 rounded-[4px] p-4 shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-0.5">Total de Modelos</p>
+            <p className="text-2xl font-bold text-slate-900 tracking-tight">{templates.length}</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">Minutas e ficheiros no repositório</p>
+          </div>
+          <div className="p-3 bg-slate-50 border border-slate-200 rounded-[4px]">
+            <BookOpen className="w-5 h-5 text-slate-700" />
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-[4px] p-4 shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-blue-600 mb-0.5">Minutas Pró-Forma</p>
+            <p className="text-2xl font-bold text-blue-600 tracking-tight">{proFormasCount}</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">Adiantamentos, tranches e fechos</p>
+          </div>
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-[4px]">
+            <FileText className="w-5 h-5 text-blue-600" />
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-[4px] p-4 shadow-sm flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 mb-0.5">Autos & Contratos Tipo</p>
+            <p className="text-2xl font-bold text-emerald-600 tracking-tight">{autosCount + contratosCount}</p>
+            <p className="text-[11px] text-slate-500 mt-0.5">Medições e termos de garantia</p>
+          </div>
+          <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-[4px]">
+            <Layers className="w-5 h-5 text-emerald-600" />
           </div>
         </div>
       </div>
 
-      {/* Main Action & Metrics Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-white border border-slate-200 shadow-xs rounded-[4px]">
-        <div className="flex items-center gap-5 sm:gap-8 flex-wrap">
-          <div className="flex items-center gap-3">
-            <div className="w-2.5 h-8 bg-indigo-600 rounded-[2px]" />
-            <div>
-              <div className="text-[10.5px] font-bold uppercase tracking-wider text-slate-500">Faturas Pró-Forma</div>
-              <div className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-                {totalProFormasCount} <span className="text-xs font-normal text-slate-500">registadas</span>
-              </div>
-            </div>
+      {/* Filter & Search Bar */}
+      <div className="bg-white border border-slate-200 rounded-[4px] p-4 shadow-sm space-y-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          {/* Category Tabs */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+            {CATEGORIES.map((cat) => {
+              const isActive = selectedCategory === cat
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={cn(
+                    'px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-[3px] transition-all whitespace-nowrap border',
+                    isActive
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
+                      : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100 hover:text-slate-900'
+                  )}
+                >
+                  {cat}
+                </button>
+              )
+            })}
           </div>
 
-          <div className="h-8 w-px bg-slate-200 hidden sm:block" />
-
-          <div className="flex items-center gap-3">
-            <div className="w-2.5 h-8 bg-blue-500 rounded-[2px]" />
-            <div>
-              <div className="text-[10.5px] font-bold uppercase tracking-wider text-slate-500">Documentos Gerais</div>
-              <div className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-                {documents.length - totalProFormasCount} <span className="text-xs font-normal text-slate-500">ficheiros</span>
-              </div>
-            </div>
+          {/* Search Input */}
+          <div className="relative min-w-[240px] sm:w-72">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Pesquisar modelo ou minuta..."
+              className="w-full pl-9 pr-8 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-[3px] text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
-        </div>
-
-        <div className="flex items-center gap-2.5 flex-wrap">
-          {/* Segmented Filter */}
-          <div className="flex items-center gap-1 bg-slate-100 border border-slate-200 p-1 rounded-[4px]">
-            <button
-              onClick={() => setTypeFilter('PRO_FORMA')}
-              className={cn(
-                'px-3 py-1.5 rounded-[3px] text-xs font-bold tracking-wider transition-all',
-                typeFilter === 'PRO_FORMA'
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-              )}
-            >
-              📄 Só Pró-Formas
-            </button>
-            <button
-              onClick={() => setTypeFilter('ALL')}
-              className={cn(
-                'px-3 py-1.5 rounded-[3px] text-xs font-bold tracking-wider transition-all',
-                typeFilter === 'ALL'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-              )}
-            >
-              Todos
-            </button>
-            <button
-              onClick={() => setTypeFilter('GERAL')}
-              className={cn(
-                'px-3 py-1.5 rounded-[3px] text-xs font-bold tracking-wider transition-all',
-                typeFilter === 'GERAL'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-              )}
-            >
-              📑 Outros Docs
-            </button>
-          </div>
-
-          <button
-            onClick={() => {
-              setModalProjectId(projects[0]?.id || '')
-              setModalFile(null)
-              setModalTitle('')
-              setModalAmount('')
-              setModalIsProForma(true)
-              setShowModal(true)
-            }}
-            className="flex items-center gap-2 px-4 py-2 rounded-[4px] text-xs font-bold uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-600/20 transition-all active:scale-95"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Adicionar Pró-Forma</span>
-          </button>
         </div>
       </div>
 
-      {/* Grid of Documents */}
+      {/* Templates Grid */}
       {filtered.length === 0 ? (
-        <div className="text-center py-14 px-4 bg-white border border-slate-200 rounded-[4px] shadow-xs flex flex-col items-center justify-center">
-          <div className="w-12 h-12 rounded-[4px] bg-indigo-50 border border-indigo-200 flex items-center justify-center mb-3 text-indigo-600">
-            <FileText className="w-6 h-6" />
-          </div>
-          <h3 className="text-sm font-bold text-slate-900 mb-1">
-            {search ? 'Nenhum documento encontrado' : 'Sem faturas pró-forma registadas'}
-          </h3>
-          <p className="text-xs text-slate-500 max-w-sm mb-4">
+        <div className="bg-white border border-slate-200 rounded-[4px] p-12 text-center shadow-sm">
+          <FileText className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+          <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Nenhum modelo encontrado</h3>
+          <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
             {search
-              ? 'Tente alterar os termos da pesquisa ou selecionar outra obra.'
-              : 'Registe e faça upload de faturas pró-forma ou orçamentos associados às obras em curso.'}
+              ? 'Nenhum resultado corresponde aos termos da pesquisa.'
+              : 'Ainda não existem modelos registados nesta categoria.'}
           </p>
           <button
-            onClick={() => {
-              setModalProjectId(projects[0]?.id || '')
-              setModalFile(null)
-              setModalTitle('')
-              setModalAmount('')
-              setModalIsProForma(true)
-              setShowModal(true)
-            }}
-            className="px-4 py-2 rounded-[4px] text-xs font-bold uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-600/20 transition-all flex items-center gap-1.5"
+            onClick={() => setShowModal(true)}
+            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold uppercase tracking-wider rounded-[4px]"
           >
-            <Plus className="w-3.5 h-3.5" /> Adicionar Primeira Pró-Forma
+            <Plus className="w-3.5 h-3.5" />
+            Adicionar Primeiro Modelo
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
-          {filtered.map((doc) => {
-            const isPro = doc.title.toLowerCase().includes('pró-forma') || doc.title.toLowerCase().includes('proforma')
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filtered.map((tpl) => {
+            const ext = tpl.fileName.split('.').pop()?.toUpperCase() || 'DOC'
+            const isDefault = tpl.isDefault
+
             return (
               <div
-                key={doc.id}
-                className={cn(
-                  'p-4 rounded-[4px] border flex flex-col justify-between gap-3 shadow-xs transition-all',
-                  isPro
-                    ? 'bg-white border-indigo-200 hover:border-indigo-400 hover:shadow-sm'
-                    : 'bg-white border-slate-200 hover:border-slate-300'
-                )}
+                key={tpl.id}
+                className="bg-white border border-slate-200 rounded-[4px] p-5 shadow-sm flex flex-col justify-between hover:border-slate-300 transition-all group"
               >
                 <div>
-                  <div className="flex items-start justify-between gap-2 mb-2">
+                  {/* Card Header: Category & File format */}
+                  <div className="flex items-center justify-between gap-2 mb-3">
                     <span
                       className={cn(
-                        'text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-[3px] border',
-                        isPro
-                          ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                          : 'bg-slate-100 text-slate-600 border-slate-200'
+                        'px-2 py-0.5 rounded-[3px] text-[10px] font-bold uppercase tracking-wider border',
+                        getBadgeColor(tpl.category)
                       )}
                     >
-                      {isPro ? 'Fatura Pró-Forma' : 'Documento Geral'}
+                      {tpl.category}
                     </span>
-                    <span className="text-[10.5px] text-slate-400 font-medium">
-                      {formatDate(doc.createdAt)}
+
+                    <span
+                      className={cn(
+                        'px-2 py-0.5 rounded-[3px] text-[10px] font-bold font-mono tracking-wider border uppercase',
+                        getFileExtBadge(tpl.fileName)
+                      )}
+                    >
+                      {ext} • {tpl.fileSize || 'DOC'}
                     </span>
                   </div>
 
-                  <h4 className="text-sm font-bold text-slate-900 line-clamp-2 leading-snug mb-2" title={doc.title}>
-                    {doc.title}
-                  </h4>
-
-                  {doc.project && (
-                    <Link
-                      href={`/obras/${doc.project.id}?tab=proformas`}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 hover:text-blue-900 transition-colors py-0.5"
-                    >
-                      <HardHat className="w-3.5 h-3.5 text-blue-500" />
-                      <span className="truncate max-w-[220px]">{doc.project.title}</span>
-                      <ArrowUpRight className="w-3 h-3 text-slate-400" />
-                    </Link>
-                  )}
-                  {doc.project?.clientName && (
-                    <p className="text-[11px] text-slate-500 truncate mt-0.5">
-                      Cliente: {doc.project.clientName}
-                    </p>
-                  )}
+                  {/* Title & Description */}
+                  <h3 className="text-sm font-bold text-slate-900 leading-snug tracking-tight mb-2 group-hover:text-blue-600 transition-colors">
+                    {tpl.title}
+                  </h3>
+                  <p className="text-xs text-slate-600 line-clamp-3 mb-4 leading-relaxed">
+                    {tpl.description}
+                  </p>
                 </div>
 
-                <div className="flex items-center justify-between pt-3 border-t border-slate-100 mt-1">
-                  <a
-                    href={doc.fileUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[4px] text-xs font-bold uppercase tracking-wider bg-slate-100 hover:bg-slate-200 text-blue-700 border border-slate-200 transition-all"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    <span>Abrir Ficheiro</span>
-                  </a>
+                {/* Card Footer: Metadata & Actions */}
+                <div className="pt-3 border-t border-slate-100 mt-auto">
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 mb-3">
+                    <span className="truncate max-w-[170px]" title={tpl.fileName}>
+                      {tpl.fileName}
+                    </span>
+                    <span>{formatDate(tpl.createdAt)}</span>
+                  </div>
 
-                  <button
-                    onClick={() => handleDelete(doc.id, doc.projectId)}
-                    className="p-1.5 rounded-[4px] text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all"
-                    title="Eliminar documento"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  <div className="flex items-center gap-2 pt-1">
+                    {/* Direct Download */}
+                    <a
+                      href={tpl.fileUrl}
+                      download={tpl.fileName}
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold uppercase tracking-wider rounded-[3px] transition-all active:scale-95 shadow-sm"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Descarregar</span>
+                    </a>
+
+                    {/* Open/Preview */}
+                    <a
+                      href={tpl.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Pré-visualizar documento"
+                      className="p-2 text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-[3px] transition-colors border border-slate-200"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+
+                    {/* Copy Link */}
+                    <button
+                      onClick={() => handleCopyLink(tpl.fileUrl, tpl.id)}
+                      title="Copiar link direto"
+                      className="p-2 text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-[3px] transition-colors border border-slate-200"
+                    >
+                      {copiedId === tpl.id ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+
+                    {/* Delete (only for user-uploaded models) */}
+                    {!isDefault && (
+                      <button
+                        onClick={() => handleDelete(tpl.id)}
+                        disabled={isPending}
+                        title="Eliminar este modelo"
+                        className="p-2 text-slate-400 hover:text-red-600 bg-slate-50 hover:bg-red-50 rounded-[3px] transition-colors border border-slate-200"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             )
@@ -355,128 +361,99 @@ export function ProFormasClient({
         </div>
       )}
 
-      {/* Modal: Adicionar Pró-Forma */}
+      {/* Modal: Adicionar Novo Modelo Geral */}
       <Modal
         isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        title="Registar Fatura Pró-Forma"
-        subtitle="Upload e arquivamento de documento pró-forma numa obra"
-        icon={<FileText className="w-5 h-5 text-indigo-600" />}
-        maxWidth="md"
+        onClose={() => {
+          if (!isUploading) setShowModal(false)
+        }}
+        title="Adicionar Novo Modelo / Minuta Geral"
       >
         <form onSubmit={handleUpload} className="space-y-4">
+          <div className="p-3 bg-blue-50 border border-blue-200 rounded-[4px] text-xs text-blue-800 leading-relaxed">
+            <strong>Biblioteca de Documentos Tipo:</strong> Este ficheiro ficará disponível como minuta/exemplo de utilização geral para toda a equipa (não associado a nenhuma obra).
+          </div>
+
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1">
-              Selecionar Obra <span className="text-red-500">*</span>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+              Nome do Modelo / Minuta *
+            </label>
+            <input
+              type="text"
+              required
+              value={modalTitle}
+              onChange={(e) => setModalTitle(e.target.value)}
+              placeholder="Ex: Minuta Fatura Pró-Forma - Materiais Especiais"
+              className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-[4px] text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+              Categoria *
             </label>
             <select
-              value={modalProjectId}
-              onChange={(e) => setModalProjectId(e.target.value)}
-              className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 bg-white border border-slate-300 focus:outline-none focus:border-indigo-600 cursor-pointer"
-              required
+              value={modalCategory}
+              onChange={(e) => setModalCategory(e.target.value)}
+              className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-[4px] text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors cursor-pointer"
             >
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.title} ({p.clientName})
-                </option>
-              ))}
+              <option value="Pró-Formas">Pró-Formas (Faturas / Adiantamentos / Fechos)</option>
+              <option value="Autos de Medição">Autos de Medição / Folhas de Cálculo</option>
+              <option value="Contratos & Minutas">Contratos & Minutas de Empreitada</option>
+              <option value="Termos & Garantias">Termos & Garantias / Declarações de Quitação</option>
+              <option value="Outros Modelos">Outros Modelos & Fichas Tipo</option>
             </select>
           </div>
 
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-              Ficheiro Anexo (PDF, Imagem ou Word) <span className="text-red-500">*</span>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+              Descrição & Instruções de Uso
             </label>
-            <label className={cn(
-              "border-2 border-dashed rounded-[4px] p-4 flex flex-col items-center justify-center text-center cursor-pointer transition-all",
-              modalFile ? "border-indigo-400 bg-indigo-50/50" : "border-slate-300 hover:border-indigo-400 bg-slate-50 hover:bg-slate-100/60"
-            )}>
-              <input
-                type="file"
-                accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0]
-                  if (f) {
-                    setModalFile(f)
-                    if (!modalTitle.trim()) {
-                      const cleanName = f.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ")
-                      setModalTitle(cleanName)
-                    }
-                  }
-                }}
-              />
-              {modalFile ? (
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-[4px] bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
-                    <FileText className="w-5 h-5" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-xs font-bold text-slate-900 truncate max-w-[240px]">{modalFile.name}</p>
-                    <p className="text-[11px] text-slate-500">{(modalFile.size / 1024).toFixed(1)} KB · Clique para alterar</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  <Upload className="w-7 h-7 mx-auto text-slate-400" />
-                  <p className="text-xs font-bold text-slate-700">Clique para selecionar ficheiro</p>
-                  <p className="text-[11px] text-slate-400">PDF, JPG, PNG ou DOCX</p>
-                </div>
-              )}
-            </label>
+            <textarea
+              rows={3}
+              value={modalDescription}
+              onChange={(e) => setModalDescription(e.target.value)}
+              placeholder="Descreva quando e como deve ser utilizado este modelo exemplo..."
+              className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-[4px] text-slate-900 focus:outline-none focus:border-blue-500 focus:bg-white transition-colors resize-none"
+            />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1">
-                Identificação / Nº Pró-Forma <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={modalTitle}
-                onChange={(e) => setModalTitle(e.target.value)}
-                placeholder="Ex: Pró-Forma 02/2026"
-                className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-white border border-slate-300 focus:outline-none focus:border-indigo-600"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-700 mb-1">
-                Valor da Pró-Forma (€)
-              </label>
-              <input
-                type="number"
-                step="any"
-                value={modalAmount}
-                onChange={(e) => setModalAmount(e.target.value)}
-                placeholder="Ex: 5000"
-                className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-white border border-slate-300 focus:outline-none focus:border-indigo-600"
-              />
-            </div>
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+              Ficheiro do Modelo (PDF, Word, Excel, Imagem) *
+            </label>
+            <input
+              type="file"
+              required
+              onChange={(e) => setModalFile(e.target.files?.[0] || null)}
+              className="w-full text-xs text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-[3px] file:border-0 file:text-xs file:font-bold file:uppercase file:tracking-wider file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer cursor-pointer border border-slate-300 rounded-[4px] p-1.5 bg-slate-50"
+            />
           </div>
 
-          <div className="flex items-center gap-2.5 pt-3 border-t border-slate-200">
+          <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-200">
             <button
               type="button"
+              disabled={isUploading}
               onClick={() => setShowModal(false)}
-              className="flex-1 py-2.5 rounded-[4px] text-xs font-semibold text-slate-700 hover:text-slate-900 border border-slate-300 hover:bg-slate-50 transition-colors"
+              className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-100 rounded-[4px] transition-colors"
             >
               Cancelar
             </button>
+
             <button
               type="submit"
-              disabled={isUploading || !modalFile || !modalTitle.trim() || !modalProjectId}
-              className="flex-1 py-2.5 rounded-[4px] text-xs font-bold uppercase tracking-wider text-white bg-indigo-600 hover:bg-indigo-700 active:scale-98 shadow-md shadow-indigo-600/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              disabled={isUploading || !modalFile || !modalTitle.trim()}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-xs font-bold uppercase tracking-wider rounded-[4px] shadow-sm transition-all active:scale-95"
             >
               {isUploading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>A enviar...</span>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>A guardar...</span>
                 </>
               ) : (
                 <>
-                  <Upload className="w-4 h-4" />
-                  <span>Carregar Pró-Forma</span>
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Guardar Modelo</span>
                 </>
               )}
             </button>
