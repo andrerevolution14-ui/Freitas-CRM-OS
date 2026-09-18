@@ -49,13 +49,16 @@ export default function LoginPage() {
 
   return (
     <div
-      style={{ minHeight: '100dvh', background: '#eaedf2' }}
+      style={{
+        minHeight: '100dvh',
+        background: 'radial-gradient(ellipse at 50% 0%, #17233f 0%, #090d16 65%, #05070c 100%)',
+      }}
       className="w-full flex flex-col items-center justify-center px-4 py-8"
     >
-      <div className="w-full" style={{ maxWidth: 390 }}>
+      <div className="w-full" style={{ maxWidth: 400 }}>
         {/* ── Logo & Badge ─────────────────────────────────── */}
         <div className="flex flex-col items-center mb-6">
-          <div style={{ width: 140, height: 80, position: 'relative', marginBottom: 10 }}>
+          <div style={{ width: 170, height: 95, position: 'relative', marginBottom: 12 }}>
             <Image
               src="/logo.png"
               alt="Freitas Renovações"
@@ -69,18 +72,18 @@ export default function LoginPage() {
               display: 'inline-flex',
               alignItems: 'center',
               gap: 6,
-              padding: '4px 12px',
-              borderRadius: 3,
-              background: '#eff6ff',
-              border: '1px solid #bfdbfe',
-              color: '#1d4ed8',
+              padding: '5px 14px',
+              borderRadius: 4,
+              background: 'rgba(37, 99, 235, 0.12)',
+              border: '1px solid rgba(96, 165, 250, 0.25)',
+              color: '#93c5fd',
               fontSize: 11,
               fontWeight: 700,
-              letterSpacing: '0.04em',
+              letterSpacing: '0.05em',
               textTransform: 'uppercase',
             }}
           >
-            <ShieldCheck size={13} />
+            <ShieldCheck size={14} className="text-blue-400" />
             Portal de Gestão Executiva
           </span>
         </div>
@@ -88,16 +91,17 @@ export default function LoginPage() {
         {/* ── Login Card ───────────────────────────────────── */}
         <div
           style={{
-            background: '#ffffff',
-            border: '1px solid #dbe1ea',
-            borderRadius: 4,
-            padding: 26,
-            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.06)',
+            background: 'rgba(17, 24, 39, 0.85)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(51, 65, 85, 0.7)',
+            borderRadius: 6,
+            padding: 28,
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5), 0 0 1px rgba(255, 255, 255, 0.05) inset',
           }}
         >
           <div className="mb-5">
-            <h2 className="text-slate-900 text-base font-extrabold tracking-tight uppercase">Iniciar Sessão</h2>
-            <p className="text-slate-500 text-xs mt-0.5">
+            <h2 className="text-white text-base font-extrabold tracking-tight uppercase">Iniciar Sessão</h2>
+            <p className="text-slate-400 text-xs mt-0.5">
               Introduza as suas credenciais para aceder ao sistema.
             </p>
           </div>
@@ -112,24 +116,24 @@ export default function LoginPage() {
                 padding: '10px 12px',
                 borderRadius: 4,
                 marginBottom: 16,
-                background: '#fef2f2',
-                border: '1px solid #fecaca',
-                color: '#b91c1c',
+                background: 'rgba(239, 68, 68, 0.12)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#fca5a5',
                 fontSize: 13,
               }}
             >
-              <AlertCircle size={16} style={{ flexShrink: 0, color: '#dc2626' }} />
+              <AlertCircle size={16} style={{ flexShrink: 0, color: '#f87171' }} />
               <span style={{ fontWeight: 500 }}>{error}</span>
             </div>
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
             {/* Username */}
             <div>
               <label
                 htmlFor="f-username"
-                style={{ display: 'block', color: '#334155', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 5 }}
+                style={{ display: 'block', color: '#94a3b8', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}
               >
                 Nome de Utilizador
               </label>
@@ -141,7 +145,7 @@ export default function LoginPage() {
                     left: 13,
                     top: '50%',
                     transform: 'translateY(-50%)',
-                    color: '#94a3b8',
+                    color: '#64748b',
                     pointerEvents: 'none',
                   }}
                 />
@@ -164,9 +168,9 @@ export default function LoginPage() {
                     paddingBottom: 11,
                     borderRadius: 4,
                     fontSize: 14,
-                    color: '#0f172a',
-                    background: '#f8fafc',
-                    border: '1px solid #cbd5e1',
+                    color: '#f8fafc',
+                    background: '#0f172a',
+                    border: '1px solid #334155',
                     outline: 'none',
                     fontWeight: 500,
                   }}
@@ -178,7 +182,7 @@ export default function LoginPage() {
             <div>
               <label
                 htmlFor="f-password"
-                style={{ display: 'block', color: '#334155', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 5 }}
+                style={{ display: 'block', color: '#94a3b8', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}
               >
                 Palavra-passe
               </label>
@@ -190,7 +194,7 @@ export default function LoginPage() {
                     left: 13,
                     top: '50%',
                     transform: 'translateY(-50%)',
-                    color: '#94a3b8',
+                    color: '#64748b',
                     pointerEvents: 'none',
                   }}
                 />
@@ -210,9 +214,9 @@ export default function LoginPage() {
                     paddingBottom: 11,
                     borderRadius: 4,
                     fontSize: 14,
-                    color: '#0f172a',
-                    background: '#f8fafc',
-                    border: '1px solid #cbd5e1',
+                    color: '#f8fafc',
+                    background: '#0f172a',
+                    border: '1px solid #334155',
                     outline: 'none',
                     fontFamily: 'monospace',
                     letterSpacing: '0.1em',
@@ -248,11 +252,11 @@ export default function LoginPage() {
               type="submit"
               disabled={loading}
               style={{
-                marginTop: 6,
+                marginTop: 8,
                 width: '100%',
                 minHeight: 46,
                 borderRadius: 4,
-                border: '1px solid rgba(96,165,250,0.4)',
+                border: '1px solid rgba(96,165,250,0.5)',
                 background: loading ? '#1e40af' : '#2563eb',
                 color: '#fff',
                 fontSize: 14,
@@ -264,9 +268,9 @@ export default function LoginPage() {
                 justifyContent: 'center',
                 gap: 8,
                 cursor: loading ? 'not-allowed' : 'pointer',
-                boxShadow: '0 4px 20px rgba(37,99,235,0.45)',
+                boxShadow: '0 4px 20px rgba(37,99,235,0.4)',
                 WebkitTapHighlightColor: 'transparent',
-                transition: 'background 0.15s',
+                transition: 'all 0.15s',
               }}
             >
               {loading ? (
@@ -284,11 +288,35 @@ export default function LoginPage() {
           </form>
         </div>
 
-        {/* Footer */}
-        <p style={{ textAlign: 'center', color: '#475569', fontSize: 11, marginTop: 16 }}>
-          Freitas Renovações © 2025 ·{' '}
-          <span style={{ color: '#60a5fa', fontFamily: 'monospace' }}>v4.0</span>
-        </p>
+        {/* Footer & Backlinks */}
+        <div className="text-center mt-6 space-y-2">
+          <p style={{ color: '#64748b', fontSize: 12 }}>
+            <a
+              href="https://grupofreitasrenovacoes.pt"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-slate-300 hover:text-blue-400 transition-colors font-bold hover:underline"
+              title="Grupo Freitas Renovações — Remodelações e Obras de Excelência"
+            >
+              Grupo Freitas Renovações
+            </a>{' '}
+            © 2025 ·{' '}
+            <span style={{ color: '#60a5fa', fontFamily: 'monospace' }}>v4.0</span>
+          </p>
+
+          <div className="pt-1">
+            <a
+              href="https://grupofreitasrenovacoes.pt"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-slate-300 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-blue-500/40 hover:text-blue-300 transition-all"
+              title="Aceder ao portal institucional do Grupo Freitas Renovações"
+            >
+              <span>grupofreitasrenovacoes.pt</span>
+              <span className="text-blue-400" aria-hidden="true">↗</span>
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   )

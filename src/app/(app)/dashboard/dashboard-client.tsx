@@ -129,10 +129,9 @@ const TIME_RANGES: { id: TimeRange; label: string }[] = [
 
 const LEAD_STATUS_ORDER = [
   { status: 'NOVA_LEAD', color: '#4f7ef8' },
-  { status: 'VISITA_AGENDADA', color: '#a78bfa' },
-  { status: 'ORCAMENTO_ENVIADO', color: '#fbbf24' },
-  { status: 'CONTRATO_ASSINADO', color: '#34d399' },
-  { status: 'PERDIDA', color: '#f87171' },
+  { status: 'VISITA_AGENDADA', color: '#8b5cf6' },
+  { status: 'ORCAMENTO_ENVIADO', color: '#f59e0b' },
+  { status: 'CONTRATO_ASSINADO', color: '#10b981' },
 ]
 
 export function DashboardClient({ stats, leads, initialNotes }: Props) {

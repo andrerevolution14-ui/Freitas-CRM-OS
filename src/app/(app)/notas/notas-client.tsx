@@ -12,8 +12,9 @@ import {
   Link as LinkIcon,
   HardHat,
   FolderKanban,
+  Edit3,
 } from 'lucide-react'
-import { createNote, deleteNote } from '@/server/actions/notes'
+import { createNote, updateNote, deleteNote } from '@/server/actions/notes'
 import { formatDate, cn } from '@/lib/utils'
 import { UserAvatar } from '@/components/ui/user-avatar'
 import { Modal } from '@/components/ui/modal'
@@ -42,7 +43,14 @@ export function NotasClient({ notes: initial, projects, leads }: Props) {
   const [notes, setNotes] = useState(initial)
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
+  const [editingNote, setEditingNote] = useState<Note | null>(null)
   const [form, setForm] = useState({
+    title: '',
+    content: '',
+    projectId: '',
+    leadId: '',
+  })
+  const [editForm, setEditForm] = useState({
     title: '',
     content: '',
     projectId: '',
@@ -71,7 +79,37 @@ export function NotasClient({ notes: initial, projects, leads }: Props) {
     })
   }
 
+  function openEditModal(note: Note) {
+    setEditingNote(note)
+    setEditForm({
+      title: note.title || '',
+      content: note.content,
+      projectId: note.project?.id || '',
+      leadId: note.lead?.id || '',
+    })
+  }
+
+  async function handleUpdate(e: React.FormEvent) {
+    e.preventDefault()
+    if (!editingNote || !editForm.content.trim()) return
+
+    startTransition(async () => {
+      const updated = await updateNote(editingNote.id, {
+        title: editForm.title || undefined,
+        content: editForm.content,
+        projectId: editForm.projectId || null,
+        leadId: editForm.leadId || null,
+      })
+
+      setNotes((prev) =>
+        prev.map((n) => (n.id === editingNote.id ? (updated as any) : n))
+      )
+      setEditingNote(null)
+    })
+  }
+
   async function handleDelete(id: string) {
+    if (!confirm('Eliminar esta nota?')) return
     startTransition(async () => {
       await deleteNote(id)
       setNotes((prev) => prev.filter((n) => n.id !== id))
@@ -203,6 +241,99 @@ export function NotasClient({ notes: initial, projects, leads }: Props) {
         </form>
       </Modal>
 
+      {/* Edit Modal */}
+      <Modal
+        isOpen={Boolean(editingNote)}
+        onClose={() => setEditingNote(null)}
+        title="Editar Nota"
+        subtitle="Atualizar apontamento ou associações"
+        icon={<StickyNote className="w-5 h-5 text-amber-600" />}
+        maxWidth="md"
+      >
+        <form onSubmit={handleUpdate} className="space-y-3.5">
+          <div>
+            <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Título (Opcional)</label>
+            <input
+              value={editForm.title}
+              onChange={(e) => setEditForm((p) => ({ ...p, title: e.target.value }))}
+              placeholder="Ex: Reunião com arquiteto, Orçamento adicional..."
+              className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-white border border-slate-300 focus:outline-none focus:border-amber-600"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+              Conteúdo <span className="text-red-600">*</span>
+            </label>
+            <textarea
+              value={editForm.content}
+              onChange={(e) => setEditForm((p) => ({ ...p, content: e.target.value }))}
+              placeholder="Escreva os apontamentos e detalhes da nota..."
+              rows={4}
+              required
+              className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-white border border-slate-300 resize-none focus:outline-none focus:border-amber-600"
+              autoFocus
+            />
+          </div>
+
+          {/* Associations */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1 flex items-center gap-1">
+                <HardHat className="w-3.5 h-3.5 text-blue-600" /> Associar a Obra
+              </label>
+              <select
+                value={editForm.projectId}
+                onChange={(e) => setEditForm((p) => ({ ...p, projectId: e.target.value, leadId: '' }))}
+                className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 bg-white border border-slate-300 focus:outline-none focus:border-amber-600"
+              >
+                <option value="">Nenhuma obra</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1 flex items-center gap-1">
+                <FolderKanban className="w-3.5 h-3.5 text-purple-600" /> Associar a Lead / CRM
+              </label>
+              <select
+                value={editForm.leadId}
+                onChange={(e) => setEditForm((p) => ({ ...p, leadId: e.target.value, projectId: '' }))}
+                className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 bg-white border border-slate-300 focus:outline-none focus:border-amber-600"
+              >
+                <option value="">Nenhuma lead</option>
+                {leads.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.clientName}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex gap-2.5 pt-3 border-t border-slate-200">
+            <button
+              type="button"
+              onClick={() => setEditingNote(null)}
+              className="flex-1 py-2.5 rounded-[4px] text-xs font-semibold text-slate-600 hover:text-slate-900 border border-slate-300 hover:bg-slate-100 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={isPending || !editForm.content.trim()}
+              className="flex-1 py-2.5 rounded-[4px] text-xs font-bold uppercase tracking-wider text-white bg-amber-600 hover:bg-amber-700 flex items-center justify-center gap-2 disabled:opacity-60 transition-all shadow-md shadow-amber-600/20"
+            >
+              {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Atualizar Nota'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
       {/* Notes list */}
       {filtered.length === 0 ? (
         <div className="text-center py-16 text-slate-400 bg-white border border-slate-200 rounded-[4px] shadow-xs">
@@ -223,13 +354,24 @@ export function NotasClient({ notes: initial, projects, leads }: Props) {
                   ) : (
                     <div />
                   )}
-                  <button
-                    onClick={() => handleDelete(note.id)}
-                    className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-600 p-1 transition-all"
-                    title="Eliminar nota"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
+                  <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-all">
+                    <button
+                      type="button"
+                      onClick={() => openEditModal(note)}
+                      className="text-slate-400 hover:text-amber-600 p-1 transition-all cursor-pointer"
+                      title="Editar nota"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(note.id)}
+                      className="text-slate-400 hover:text-red-600 p-1 transition-all cursor-pointer"
+                      title="Eliminar nota"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
                 <p className="text-sm text-slate-600 whitespace-pre-wrap leading-relaxed">{note.content}</p>
               </div>

@@ -5,6 +5,8 @@ export type LeadStatus =
   | 'CONTRATO_ASSINADO'
   | 'PERDIDA'
 
+export type LeadUrgency = 'Imediatamente' | 'Curto prazo' | 'Sem pressa'
+
 export type ProjectStatus =
   | 'EM_PLANEAMENTO'
   | 'EM_EXECUCAO'

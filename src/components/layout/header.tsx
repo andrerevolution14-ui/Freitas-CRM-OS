@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { StickyNote, X, Plus, Loader2, LogOut, Users, ShieldCheck, ChevronDown, FileText } from 'lucide-react'
+import { StickyNote, X, Plus, Loader2, LogOut, Users, ShieldCheck, ChevronDown, FileText, Globe, ExternalLink } from 'lucide-react'
 import { createNote } from '@/server/actions/notes'
 import { useSession, signOut } from 'next-auth/react'
 import { UserAvatar } from '@/components/ui/user-avatar'
@@ -134,6 +134,21 @@ export function Header({ title }: { title?: string }) {
                     <FileText className="w-4 h-4 text-indigo-600" />
                     <span>Modelos & Pró-Formas</span>
                   </Link>
+
+                  <a
+                    href="https://grupofreitasrenovacoes.pt"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => setShowUserMenu(false)}
+                    className="flex items-center justify-between px-2.5 py-2 rounded-[3px] text-xs font-semibold text-blue-700 hover:text-blue-800 hover:bg-blue-50 transition-colors"
+                    title="Visitar Website do Grupo Freitas Renovações"
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <Globe className="w-4 h-4 text-blue-600" />
+                      <span>Website Oficial</span>
+                    </span>
+                    <ExternalLink className="w-3.5 h-3.5 text-blue-500" />
+                  </a>
                 </div>
 
                 <div className="pt-2 border-t border-slate-100">

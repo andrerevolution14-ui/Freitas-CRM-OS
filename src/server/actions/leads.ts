@@ -15,6 +15,10 @@ export async function getLeads() {
     orderBy: { createdAt: 'desc' },
     include: {
       project: true,
+      notes: {
+        orderBy: { createdAt: 'desc' },
+        include: { createdBy: { select: { id: true, name: true, color: true, image: true } } },
+      },
       _count: { select: { notes: true } },
       createdBy: { select: { id: true, name: true, color: true } },
     },
@@ -26,7 +30,7 @@ export async function getLead(id: string) {
     where: { id },
     include: {
       notes: {
-        include: { createdBy: { select: { id: true, name: true, color: true } } },
+        include: { createdBy: { select: { id: true, name: true, color: true, image: true } } },
         orderBy: { createdAt: 'desc' },
       },
       project: true,
@@ -43,9 +47,25 @@ export async function createLead(data: {
   source?: string
   estimatedValue?: number
   status?: string
+  urgency?: string
 }) {
   const createdById = await getCurrentUserId()
-  const lead = await prisma.lead.create({ data: { ...data, createdById } })
+  const lead = await prisma.lead.create({
+    data: {
+      ...data,
+      urgency: data.urgency || 'Sem pressa',
+      createdById,
+    },
+    include: {
+      project: true,
+      notes: {
+        orderBy: { createdAt: 'desc' },
+        include: { createdBy: { select: { id: true, name: true, color: true, image: true } } },
+      },
+      _count: { select: { notes: true } },
+      createdBy: { select: { id: true, name: true, color: true } },
+    },
+  })
   revalidatePath('/leads')
   revalidatePath('/dashboard')
   return lead
@@ -61,11 +81,25 @@ export async function updateLead(
     source: string
     estimatedValue: number
     status: string
+    urgency: string
   }>
 ) {
-  const lead = await prisma.lead.update({ where: { id }, data })
+  const lead = await prisma.lead.update({
+    where: { id },
+    data,
+    include: {
+      project: true,
+      notes: {
+        orderBy: { createdAt: 'desc' },
+        include: { createdBy: { select: { id: true, name: true, color: true, image: true } } },
+      },
+      _count: { select: { notes: true } },
+      createdBy: { select: { id: true, name: true, color: true } },
+    },
+  })
   revalidatePath('/leads')
   revalidatePath(`/leads/${id}`)
+  revalidatePath('/dashboard')
   return lead
 }
 

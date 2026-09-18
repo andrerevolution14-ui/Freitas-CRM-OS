@@ -23,6 +23,9 @@ import {
   CheckSquare,
   AlertCircle,
   Briefcase,
+  StickyNote,
+  Edit3,
+  Check,
 } from 'lucide-react'
 import {
   createLead,
@@ -30,53 +33,51 @@ import {
   deleteLead,
   convertLeadToProject,
 } from '@/server/actions/leads'
-import { formatCurrency, formatDate, getStatusLabel, cn } from '@/lib/utils'
+import { createNote, updateNote, deleteNote } from '@/server/actions/notes'
+import { formatCurrency, formatDate, getStatusLabel, getUrgencyBadge, cn } from '@/lib/utils'
 import { Modal } from '@/components/ui/modal'
+import { UserAvatar } from '@/components/ui/user-avatar'
 import type { LeadStatus } from '@prisma/client'
 
 const CRM_COLUMNS: {
   status: LeadStatus
   title: string
-  originalLabel: string
   color: string
   dot: string
 }[] = [
   {
     status: 'NOVA_LEAD',
-    title: 'Interessados',
-    originalLabel: 'Nova Lead',
+    title: 'Leads',
     color: '#3b82f6',
     dot: 'bg-blue-500',
   },
   {
     status: 'VISITA_AGENDADA',
-    title: 'Qualificação',
-    originalLabel: 'Visita Agendada',
+    title: 'Visita',
     color: '#8b5cf6',
     dot: 'bg-purple-500',
   },
   {
     status: 'ORCAMENTO_ENVIADO',
-    title: 'Proposta',
-    originalLabel: 'Orçamento Enviado',
+    title: 'Orçamento Enviado',
     color: '#f59e0b',
     dot: 'bg-amber-500',
   },
   {
     status: 'CONTRATO_ASSINADO',
-    title: 'Negociação',
-    originalLabel: 'Contrato Assinado',
+    title: 'Fechado',
     color: '#10b981',
     dot: 'bg-emerald-500',
   },
-  {
-    status: 'PERDIDA',
-    title: 'Fechamento',
-    originalLabel: 'Perdida / Concluída',
-    color: '#ef4444',
-    dot: 'bg-red-500',
-  },
 ]
+
+type NoteItem = {
+  id: string
+  title: string | null
+  content: string
+  createdAt: Date | string
+  createdBy?: { id: string; name: string; color: string; image?: string | null } | null
+}
 
 type Lead = {
   id: string
@@ -86,9 +87,12 @@ type Lead = {
   address: string
   source: string
   status: LeadStatus
+  urgency?: string | null
   estimatedValue: number | null
   createdAt: Date
   project: { id: string } | null
+  notes?: NoteItem[]
+  _count?: { notes: number }
 }
 
 const SOURCES = ['Meta Ads', 'Google Ads', 'Instagram', 'Referência', 'Website', 'Outro']
@@ -113,6 +117,7 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
     address: '',
     source: 'Meta Ads',
     estimatedValue: '',
+    urgency: 'Sem pressa',
   })
   const [convertForm, setConvertForm] = useState({
     title: '',
@@ -120,6 +125,14 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
     clientNIF: '',
     startDate: '',
   })
+
+  // Direct CRM Notes Modal state
+  const [activeNotesLead, setActiveNotesLead] = useState<Lead | null>(null)
+  const [newNoteTitle, setNewNoteTitle] = useState('')
+  const [newNoteContent, setNewNoteContent] = useState('')
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null)
+  const [editNoteTitle, setEditNoteTitle] = useState('')
+  const [editNoteContent, setEditNoteContent] = useState('')
 
   // Filtering and Sorting
   const filtered = leads
@@ -209,6 +222,7 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
         address: form.address,
         source: form.source,
         estimatedValue: form.estimatedValue ? parseFloat(form.estimatedValue) : undefined,
+        urgency: form.urgency,
       })
       setLeads((prev) => [
         { ...lead, status: lead.status as LeadStatus, project: null },
@@ -221,8 +235,70 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
         address: '',
         source: 'Meta Ads',
         estimatedValue: '',
+        urgency: 'Sem pressa',
       })
       setShowForm(false)
+    })
+  }
+
+  async function handleAddLeadNote(e: React.FormEvent) {
+    e.preventDefault()
+    if (!activeNotesLead || !newNoteContent.trim()) return
+
+    startTransition(async () => {
+      const created = await createNote({
+        title: newNoteTitle.trim() || undefined,
+        content: newNoteContent.trim(),
+        leadId: activeNotesLead.id,
+      })
+
+      const updatedLeadNotes = [created as any, ...(activeNotesLead.notes || [])]
+      const updatedLead = { ...activeNotesLead, notes: updatedLeadNotes }
+
+      setActiveNotesLead(updatedLead)
+      setLeads((prev) =>
+        prev.map((l) => (l.id === activeNotesLead.id ? updatedLead : l))
+      )
+      setNewNoteTitle('')
+      setNewNoteContent('')
+    })
+  }
+
+  async function handleUpdateLeadNote(noteId: string, e: React.FormEvent) {
+    e.preventDefault()
+    if (!activeNotesLead || !editNoteContent.trim()) return
+
+    startTransition(async () => {
+      const updated = await updateNote(noteId, {
+        title: editNoteTitle.trim() || undefined,
+        content: editNoteContent.trim(),
+      })
+
+      const updatedLeadNotes = (activeNotesLead.notes || []).map((n) =>
+        n.id === noteId ? { ...n, title: updated.title, content: updated.content } : n
+      )
+      const updatedLead = { ...activeNotesLead, notes: updatedLeadNotes }
+
+      setActiveNotesLead(updatedLead)
+      setLeads((prev) =>
+        prev.map((l) => (l.id === activeNotesLead.id ? updatedLead : l))
+      )
+      setEditingNoteId(null)
+    })
+  }
+
+  async function handleDeleteLeadNote(noteId: string) {
+    if (!confirm('Eliminar esta nota?')) return
+    startTransition(async () => {
+      await deleteNote(noteId)
+      if (!activeNotesLead) return
+      const updatedLeadNotes = (activeNotesLead.notes || []).filter((n) => n.id !== noteId)
+      const updatedLead = { ...activeNotesLead, notes: updatedLeadNotes }
+
+      setActiveNotesLead(updatedLead)
+      setLeads((prev) =>
+        prev.map((l) => (l.id === activeNotesLead.id ? updatedLead : l))
+      )
     })
   }
 
@@ -421,7 +497,7 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
 
       {/* ── FUNIL VIEW (Image 2 style: Rectangular, Crisp Columns & Cards) ─ */}
       {view === 'funil' && (
-        <div className="flex md:grid md:grid-cols-3 lg:grid-cols-5 gap-3 items-start overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-none">
+        <div className="flex lg:grid lg:grid-cols-4 gap-3 items-start overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-none">
           {CRM_COLUMNS.map((col) => {
             const colLeads = filtered.filter((l) => l.status === col.status)
             const colTotalValue = colLeads.reduce((s, l) => s + (l.estimatedValue || 0), 0)
@@ -434,7 +510,7 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
                 onDragLeave={handleDragLeave}
                 onDrop={(e) => handleDrop(e, col.status)}
                 className={cn(
-                  'w-[84vw] sm:w-[320px] md:w-auto flex-shrink-0 snap-center md:snap-align-none rounded-[4px] border transition-all flex flex-col min-h-[480px] md:min-h-[560px] bg-[#f1f5f9]',
+                  'w-[84vw] sm:w-[320px] lg:w-auto flex-shrink-0 snap-center lg:snap-align-none rounded-[4px] border transition-all flex flex-col min-h-[480px] lg:min-h-[560px] bg-[#f1f5f9]',
                   isTarget ? 'border-blue-500 ring-1 ring-blue-500/50 bg-blue-50/30' : 'border-slate-200'
                 )}
               >
@@ -455,6 +531,9 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
                 <div className="p-2 space-y-2 flex-1 overflow-y-auto">
                   {colLeads.map((lead) => {
                     const dotInfo = getLeadDot(lead)
+                    const urgBadge = getUrgencyBadge(lead.urgency)
+                    const notesCount = lead.notes?.length || lead._count?.notes || 0
+
                     return (
                       <div
                         key={lead.id}
@@ -467,16 +546,28 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
                           draggedLeadId === lead.id && 'opacity-30 border-dashed border-blue-500'
                         )}
                       >
-                        {/* Dot indicator and Title */}
+                        {/* Dot indicator, Urgency badge and Title */}
                         <div className="flex items-start gap-2">
                           <span
                             className={cn('w-2.5 h-2.5 rounded-full mt-1 flex-shrink-0', dotInfo.color)}
                             title={dotInfo.label}
                           />
                           <div className="flex-1 min-w-0">
-                            <p className="text-xs font-bold text-slate-900 leading-snug truncate">
-                              {lead.clientName}
-                            </p>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="text-xs font-bold text-slate-900 leading-snug truncate">
+                                {lead.clientName}
+                              </p>
+                              <span
+                                className={cn(
+                                  'text-[9px] font-bold px-1.5 py-0.2 rounded-[2px] border leading-tight',
+                                  urgBadge.bg,
+                                  urgBadge.color,
+                                  urgBadge.border
+                                )}
+                              >
+                                {urgBadge.label}
+                              </span>
+                            </div>
                             <p className="text-[11px] text-slate-500 truncate mt-0.5">
                               {lead.address || 'Sem morada'}
                             </p>
@@ -494,15 +585,36 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
                         </div>
 
                         {/* Quick action buttons on card footer */}
-                        <div className="flex items-center justify-between mt-2 pt-1">
-                          <a
-                            href={`tel:${lead.phone}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="text-slate-400 hover:text-amber-600 p-1 rounded hover:bg-amber-50 transition-colors"
-                            title={`Ligar: ${lead.phone}`}
-                          >
-                            <Phone className="w-3.5 h-3.5 text-amber-600" />
-                          </a>
+                        <div className="flex items-center justify-between mt-2 pt-1 border-t border-slate-100">
+                          <div className="flex items-center gap-1">
+                            <a
+                              href={`tel:${lead.phone}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-slate-400 hover:text-amber-600 p-1 rounded hover:bg-amber-50 transition-colors"
+                              title={`Ligar: ${lead.phone}`}
+                            >
+                              <Phone className="w-3.5 h-3.5 text-amber-600" />
+                            </a>
+
+                            {/* Direct Note Button on CRM Card */}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setActiveNotesLead(lead)
+                              }}
+                              className={cn(
+                                'flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold transition-colors',
+                                notesCount > 0
+                                  ? 'text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200'
+                                  : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
+                              )}
+                              title="Notas da Lead no CRM"
+                            >
+                              <StickyNote className="w-3 h-3 text-amber-600" />
+                              <span>{notesCount > 0 ? `${notesCount}` : '+ Nota'}</span>
+                            </button>
+                          </div>
 
                           <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100">
                             {lead.status === 'CONTRATO_ASSINADO' && !lead.project && (
@@ -559,6 +671,7 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
                   <th className="px-4 py-3">Cliente / Negócio</th>
                   <th className="px-4 py-3">Telefone</th>
                   <th className="px-4 py-3">Morada</th>
+                  <th className="px-4 py-3">Urgência</th>
                   <th className="px-4 py-3">Origem</th>
                   <th className="px-4 py-3">Valor Estimado</th>
                   <th className="px-4 py-3">Estado</th>
@@ -566,39 +679,64 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filtered.map((lead) => (
-                  <tr
-                    key={lead.id}
-                    onClick={() => router.push(`/leads/${lead.id}`)}
-                    className="hover:bg-slate-50 cursor-pointer transition-colors"
-                  >
-                    <td className="px-4 py-3 font-semibold text-slate-900">
-                      {lead.clientName}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700">{lead.phone}</td>
-                    <td className="px-4 py-3 text-slate-500 truncate max-w-[220px]">{lead.address}</td>
-                    <td className="px-4 py-3 text-slate-500">{lead.source}</td>
-                    <td className="px-4 py-3 font-bold text-slate-900">
-                      {lead.estimatedValue ? formatCurrency(lead.estimatedValue) : '—'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-[3px] text-[10.5px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-                        {getStatusLabel(lead.status)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                      <button
-                        onClick={(e) => handleDelete(lead.id, e)}
-                        className="text-slate-400 hover:text-red-600 p-1"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {filtered.map((lead) => {
+                  const urgBadge = getUrgencyBadge(lead.urgency)
+                  const notesCount = lead.notes?.length || lead._count?.notes || 0
+                  return (
+                    <tr
+                      key={lead.id}
+                      onClick={() => router.push(`/leads/${lead.id}`)}
+                      className="hover:bg-slate-50 cursor-pointer transition-colors"
+                    >
+                      <td className="px-4 py-3 font-semibold text-slate-900">
+                        {lead.clientName}
+                      </td>
+                      <td className="px-4 py-3 text-slate-700">{lead.phone}</td>
+                      <td className="px-4 py-3 text-slate-500 truncate max-w-[200px]">{lead.address}</td>
+                      <td className="px-4 py-3">
+                        <span className={cn('inline-flex items-center px-2 py-0.5 rounded-[3px] text-[10.5px] font-bold border', urgBadge.bg, urgBadge.color, urgBadge.border)}>
+                          {urgBadge.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-slate-500">{lead.source}</td>
+                      <td className="px-4 py-3 font-bold text-slate-900">
+                        {lead.estimatedValue ? formatCurrency(lead.estimatedValue) : '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-[3px] text-[10.5px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                          {getStatusLabel(lead.status)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setActiveNotesLead(lead)}
+                            className={cn(
+                              'flex items-center gap-1 px-2 py-1 rounded text-[11px] font-semibold transition-colors',
+                              notesCount > 0
+                                ? 'text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200'
+                                : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100'
+                            )}
+                            title="Ver/Adicionar Notas"
+                          >
+                            <StickyNote className="w-3.5 h-3.5 text-amber-600" />
+                            <span>{notesCount > 0 ? `${notesCount}` : '+ Nota'}</span>
+                          </button>
+                          <button
+                            onClick={(e) => handleDelete(lead.id, e)}
+                            className="text-slate-400 hover:text-red-600 p-1"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="text-center py-12 text-slate-400">
+                    <td colSpan={8} className="text-center py-12 text-slate-400">
                       Nenhum negócio encontrado.
                     </td>
                   </tr>
@@ -688,6 +826,35 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
                 </option>
               ))}
             </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">Urgência do Negócio</label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { value: 'Imediatamente', label: 'Imediatamente', color: 'border-red-300 text-red-700 bg-red-50/70', active: 'ring-2 ring-red-500 bg-red-100/90 font-extrabold' },
+                { value: 'Curto prazo', label: 'Curto prazo', color: 'border-amber-300 text-amber-700 bg-amber-50/70', active: 'ring-2 ring-amber-500 bg-amber-100/90 font-extrabold' },
+                { value: 'Sem pressa', label: 'Sem pressa', color: 'border-slate-300 text-slate-700 bg-slate-50', active: 'ring-2 ring-slate-500 bg-slate-200 font-extrabold' },
+              ].map((urg) => (
+                <button
+                  key={urg.value}
+                  type="button"
+                  onClick={() => setForm((p) => ({ ...p, urgency: urg.value }))}
+                  className={cn(
+                    'py-2 px-2 text-xs font-semibold rounded-[4px] border transition-all text-center flex items-center justify-center gap-1.5 cursor-pointer',
+                    urg.color,
+                    form.urgency === urg.value && urg.active
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'w-2 h-2 rounded-full',
+                      urg.value === 'Imediatamente' ? 'bg-red-600' : urg.value === 'Curto prazo' ? 'bg-amber-500' : 'bg-slate-400'
+                    )}
+                  />
+                  <span>{urg.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
           <div className="flex gap-2.5 pt-3 border-t border-slate-200">
             <button
@@ -781,6 +948,163 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* ── DIRECT CRM LEAD NOTES MODAL ──────────────────────────────── */}
+      <Modal
+        isOpen={Boolean(activeNotesLead)}
+        onClose={() => {
+          setActiveNotesLead(null)
+          setEditingNoteId(null)
+          setNewNoteTitle('')
+          setNewNoteContent('')
+        }}
+        title={`Notas — ${activeNotesLead?.clientName || ''}`}
+        subtitle="Registar e consultar apontamentos diretamente no CRM"
+        icon={<StickyNote className="w-5 h-5 text-amber-600" />}
+        maxWidth="lg"
+      >
+        <div className="space-y-4">
+          {/* Create note inside modal */}
+          <form onSubmit={handleAddLeadNote} className="p-3.5 rounded-[4px] bg-amber-50/60 border border-amber-200 space-y-2.5">
+            <p className="text-xs font-bold uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
+              <Plus className="w-3.5 h-3.5" /> Adicionar Nota a esta Lead
+            </p>
+            <input
+              type="text"
+              value={newNoteTitle}
+              onChange={(e) => setNewNoteTitle(e.target.value)}
+              placeholder="Título (Opcional, ex: Contacto telefónico, Pedido de revisão...)"
+              className="w-full px-3 py-1.5 text-xs rounded-[4px] bg-white border border-slate-300 focus:outline-none focus:border-amber-600 text-slate-900"
+            />
+            <textarea
+              required
+              rows={3}
+              value={newNoteContent}
+              onChange={(e) => setNewNoteContent(e.target.value)}
+              placeholder="Escreva os detalhes da nota aqui..."
+              className="w-full px-3 py-1.5 text-xs rounded-[4px] bg-white border border-slate-300 focus:outline-none focus:border-amber-600 text-slate-900 resize-none"
+            />
+            <div className="flex justify-end pt-1">
+              <button
+                type="submit"
+                disabled={isPending || !newNoteContent.trim()}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded shadow-sm disabled:opacity-60 transition-all cursor-pointer"
+              >
+                {isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+                <span>Gravar Nota no CRM</span>
+              </button>
+            </div>
+          </form>
+
+          {/* List of notes for active lead */}
+          <div className="space-y-2.5 max-h-[360px] overflow-y-auto pr-1">
+            <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              Histórico de Notas ({activeNotesLead?.notes?.length || 0})
+            </h4>
+
+            {(!activeNotesLead?.notes || activeNotesLead.notes.length === 0) ? (
+              <div className="text-center py-8 text-slate-400 border border-dashed border-slate-200 rounded-[4px]">
+                <StickyNote className="w-7 h-7 mx-auto mb-1.5 opacity-30" />
+                <p className="text-xs">Esta lead ainda não tem notas registadas.</p>
+              </div>
+            ) : (
+              activeNotesLead.notes.map((note) => (
+                <div
+                  key={note.id}
+                  className="p-3 rounded-[4px] bg-slate-50 border border-slate-200 hover:border-amber-300 transition-all group"
+                >
+                  {editingNoteId === note.id ? (
+                    <form onSubmit={(e) => handleUpdateLeadNote(note.id, e)} className="space-y-2">
+                      <input
+                        type="text"
+                        value={editNoteTitle}
+                        onChange={(e) => setEditNoteTitle(e.target.value)}
+                        placeholder="Título da nota..."
+                        className="w-full px-2.5 py-1 text-xs rounded bg-white border border-slate-300 focus:outline-none focus:border-amber-600 font-bold text-slate-900"
+                      />
+                      <textarea
+                        required
+                        rows={3}
+                        value={editNoteContent}
+                        onChange={(e) => setEditNoteContent(e.target.value)}
+                        className="w-full px-2.5 py-1 text-xs rounded bg-white border border-slate-300 focus:outline-none focus:border-amber-600 text-slate-800 resize-none"
+                      />
+                      <div className="flex items-center justify-end gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => setEditingNoteId(null)}
+                          className="px-2.5 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-200 rounded cursor-pointer"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={isPending || !editNoteContent.trim()}
+                          className="flex items-center gap-1 px-3 py-1 text-[11px] font-bold text-white bg-amber-600 hover:bg-amber-700 rounded shadow-xs cursor-pointer"
+                        >
+                          {isPending ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                          <span>Guardar Alterações</span>
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <>
+                      <div className="flex items-start justify-between gap-2">
+                        {note.title ? (
+                          <p className="text-xs font-bold text-slate-900 leading-snug">{note.title}</p>
+                        ) : (
+                          <span />
+                        )}
+                        <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingNoteId(note.id)
+                              setEditNoteTitle(note.title || '')
+                              setEditNoteContent(note.content)
+                            }}
+                            className="p-1 text-slate-400 hover:text-amber-700 hover:bg-amber-50 rounded cursor-pointer"
+                            title="Editar nota"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteLeadNote(note.id)}
+                            className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded cursor-pointer"
+                            title="Eliminar nota"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <p className="text-xs text-slate-700 whitespace-pre-wrap leading-relaxed mt-1">
+                        {note.content}
+                      </p>
+
+                      <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-slate-200/60 text-[10.5px] text-slate-400">
+                        <div className="flex items-center gap-1.5">
+                          {note.createdBy && (
+                            <UserAvatar
+                              name={note.createdBy.name}
+                              color={note.createdBy.color}
+                              image={note.createdBy.image}
+                              size={16}
+                            />
+                          )}
+                          <span>{note.createdBy?.name || 'Sistema'}</span>
+                        </div>
+                        <span>{formatDate(note.createdAt)}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       </Modal>
     </div>
   )

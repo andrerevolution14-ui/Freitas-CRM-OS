@@ -1,9 +1,11 @@
 import { getLead } from '@/server/actions/leads'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Phone, Mail, MapPin, Euro, Calendar } from 'lucide-react'
-import { formatCurrency, formatDate, getStatusLabel, cn } from '@/lib/utils'
+import { ArrowLeft, Phone, Mail, MapPin, Euro, Calendar, AlertCircle } from 'lucide-react'
+import { formatCurrency, formatDate, getStatusLabel, getUrgencyBadge, cn } from '@/lib/utils'
 import type { LeadStatus } from '@prisma/client'
+import { DeleteLeadButton } from './delete-lead-button'
+import { LeadNotesSection } from './lead-notes-section'
 
 const STATUS_COLOR: Record<LeadStatus, string> = {
   NOVA_LEAD: 'badge-blue',
@@ -13,12 +15,12 @@ const STATUS_COLOR: Record<LeadStatus, string> = {
   PERDIDA: 'badge-red',
 }
 
-import { DeleteLeadButton } from './delete-lead-button'
-
 export default async function LeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const lead = await getLead(id)
   if (!lead) notFound()
+
+  const urgencyBadge = getUrgencyBadge(lead.urgency)
 
   return (
     <div className="space-y-6 animate-fade-in max-w-4xl">
@@ -28,8 +30,13 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">{lead.clientName}</h1>
-            <div className="flex items-center gap-3 mt-1">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">{lead.clientName}</h1>
+              <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-[3px] border uppercase tracking-wider', urgencyBadge.bg, urgencyBadge.color, urgencyBadge.border)}>
+                {urgencyBadge.label}
+              </span>
+            </div>
+            <div className="flex items-center gap-3 mt-1.5">
               <span className={cn('text-[10.5px] px-2 py-0.5 rounded-[3px] font-bold uppercase tracking-wider', STATUS_COLOR[lead.status as LeadStatus] || 'badge-gray')}>
                 {getStatusLabel(lead.status)}
               </span>
@@ -63,6 +70,12 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
               <MapPin className="w-4 h-4 text-slate-400 mt-0.5" />
               <span className="text-slate-800">{lead.address}</span>
             </div>
+            <div className="flex items-center gap-3 text-sm">
+              <AlertCircle className="w-4 h-4 text-slate-400" />
+              <span className="text-slate-600 text-xs font-medium">
+                Urgência: <strong className={urgencyBadge.color}>{urgencyBadge.label}</strong>
+              </span>
+            </div>
             {lead.estimatedValue && (
               <div className="flex items-center gap-3 text-sm">
                 <Euro className="w-4 h-4 text-slate-400" />
@@ -76,22 +89,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-[4px] p-5 shadow-sm">
-          <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-4">Notas do Cliente ({lead.notes.length})</h2>
-          {lead.notes.length === 0 ? (
-            <p className="text-sm text-slate-500 py-3">Sem notas ainda.</p>
-          ) : (
-            <div className="space-y-3">
-              {lead.notes.map(note => (
-                <div key={note.id} className="p-3.5 rounded-[4px] bg-slate-50 border border-slate-200">
-                  {note.title && <p className="text-xs font-bold text-slate-900 mb-1">{note.title}</p>}
-                  <p className="text-sm text-slate-700 whitespace-pre-wrap">{note.content}</p>
-                  <p className="text-[10.5px] text-slate-400 mt-2">{formatDate(note.createdAt)}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <LeadNotesSection leadId={lead.id} initialNotes={lead.notes as any} />
       </div>
     </div>
   )

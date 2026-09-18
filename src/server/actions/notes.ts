@@ -43,19 +43,39 @@ export async function createNote(data: {
     },
   })
   revalidatePath('/notas')
+  revalidatePath('/leads')
+  if (note.leadId) revalidatePath(`/leads/${note.leadId}`)
+  if (note.projectId) revalidatePath(`/obras/${note.projectId}`)
   revalidatePath('/dashboard')
   return note
 }
 
-export async function updateNote(id: string, data: { title?: string; content: string }) {
-  const note = await prisma.note.update({ where: { id }, data })
+export async function updateNote(
+  id: string,
+  data: { title?: string; content: string; leadId?: string | null; projectId?: string | null }
+) {
+  const note = await prisma.note.update({
+    where: { id },
+    data,
+    include: {
+      lead: true,
+      project: true,
+      createdBy: { select: { id: true, name: true, color: true, image: true } },
+    },
+  })
   revalidatePath('/notas')
+  revalidatePath('/leads')
+  if (note.leadId) revalidatePath(`/leads/${note.leadId}`)
+  if (note.projectId) revalidatePath(`/obras/${note.projectId}`)
   revalidatePath('/dashboard')
   return note
 }
 
 export async function deleteNote(id: string) {
-  await prisma.note.delete({ where: { id } })
+  const note = await prisma.note.delete({ where: { id } })
   revalidatePath('/notas')
+  revalidatePath('/leads')
+  if (note.leadId) revalidatePath(`/leads/${note.leadId}`)
+  if (note.projectId) revalidatePath(`/obras/${note.projectId}`)
   revalidatePath('/dashboard')
 }

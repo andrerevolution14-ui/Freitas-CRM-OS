@@ -35,6 +35,7 @@ model Lead {
   address        String
   source         String   @default("Meta Ads")
   status         String   @default("NOVA_LEAD")
+  urgency        String?  @default("Sem pressa")
   estimatedValue Float?
   notes          Note[]
   project        Project?

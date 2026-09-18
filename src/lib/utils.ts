@@ -41,10 +41,11 @@ export function getMarginBg(margin: number): string {
 
 export function getStatusLabel(status: string): string {
   const labels: Record<string, string> = {
-    NOVA_LEAD: 'Nova Lead',
-    VISITA_AGENDADA: 'Visita Agendada',
+    NOVA_LEAD: 'Leads',
+    VISITA_AGENDADA: 'Visita',
     ORCAMENTO_ENVIADO: 'Orçamento Enviado',
-    CONTRATO_ASSINADO: 'Contrato Assinado',
+    CONTRATO_ASSINADO: 'Fechado',
+    FECHADO: 'Fechado',
     PERDIDA: 'Perdida',
     EM_PLANEAMENTO: 'Em Planeamento',
     EM_EXECUCAO: 'Em Execução',
@@ -68,4 +69,40 @@ export function getStatusLabel(status: string): string {
     OUTRO: 'Outro',
   }
   return labels[status] || status
+}
+
+export function getUrgencyBadge(urgency?: string | null): {
+  label: string
+  color: string
+  bg: string
+  border: string
+  dot: string
+} {
+  switch (urgency) {
+    case 'Imediatamente':
+      return {
+        label: 'Imediatamente',
+        color: 'text-red-700',
+        bg: 'bg-red-50',
+        border: 'border-red-200',
+        dot: 'bg-red-500',
+      }
+    case 'Curto prazo':
+      return {
+        label: 'Curto prazo',
+        color: 'text-amber-700',
+        bg: 'bg-amber-50',
+        border: 'border-amber-200',
+        dot: 'bg-amber-500',
+      }
+    case 'Sem pressa':
+    default:
+      return {
+        label: 'Sem pressa',
+        color: 'text-slate-600',
+        bg: 'bg-slate-100',
+        border: 'border-slate-200',
+        dot: 'bg-slate-400',
+      }
+  }
 }
