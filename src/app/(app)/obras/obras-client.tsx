@@ -123,8 +123,13 @@ export function ObrasClient({ projects: initial }: { projects: Project[] }) {
     e.stopPropagation()
     if (!confirm('Eliminar esta obra e todos os seus dados?')) return
     startTransition(async () => {
-      await deleteProject(id)
-      setProjects(prev => prev.filter(p => p.id !== id))
+      try {
+        await deleteProject(id)
+        setProjects(prev => prev.filter(p => p.id !== id))
+      } catch (err: any) {
+        console.error('Error deleting project:', err)
+        alert(err?.message || 'Erro ao eliminar obra')
+      }
     })
   }
 

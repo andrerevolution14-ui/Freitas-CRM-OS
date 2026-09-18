@@ -82,8 +82,24 @@ export async function updateProject(id: string, data: Partial<{
 }
 
 export async function deleteProject(id: string) {
-  await prisma.project.delete({ where: { id } })
-  revalidatePath('/obras')
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.note.deleteMany({ where: { projectId: id } })
+      await tx.document.deleteMany({ where: { projectId: id } })
+      await tx.expense.deleteMany({ where: { projectId: id } })
+      await tx.clientTranche.deleteMany({ where: { projectId: id } })
+      await tx.subcontractorPayment.deleteMany({ where: { projectId: id } })
+      await tx.project.delete({ where: { id } })
+    })
+
+    revalidatePath('/obras')
+    revalidatePath('/dashboard')
+    revalidatePath('/pro-formas')
+    return { success: true }
+  } catch (error: any) {
+    console.error('Error deleting project:', error)
+    throw new Error(error?.message || 'Erro ao eliminar obra')
+  }
 }
 
 // Expenses
@@ -106,8 +122,14 @@ export async function createExpense(data: {
 }
 
 export async function deleteExpense(id: string, projectId: string) {
-  await prisma.expense.delete({ where: { id } })
-  revalidatePath(`/obras/${projectId}`)
+  try {
+    await prisma.expense.delete({ where: { id } })
+    revalidatePath(`/obras/${projectId}`)
+    return { success: true }
+  } catch (error: any) {
+    console.error('Error deleting expense:', error)
+    throw new Error(error?.message || 'Erro ao eliminar despesa')
+  }
 }
 
 // Tranches
@@ -138,8 +160,14 @@ export async function updateTrancheStatus(id: string, status: PaymentStatus, pro
 }
 
 export async function deleteClientTranche(id: string, projectId: string) {
-  await prisma.clientTranche.delete({ where: { id } })
-  revalidatePath(`/obras/${projectId}`)
+  try {
+    await prisma.clientTranche.delete({ where: { id } })
+    revalidatePath(`/obras/${projectId}`)
+    return { success: true }
+  } catch (error: any) {
+    console.error('Error deleting tranche:', error)
+    throw new Error(error?.message || 'Erro ao eliminar tranche')
+  }
 }
 
 // Documents
@@ -155,10 +183,25 @@ export async function createDocument(data: {
   return doc
 }
 
-export async function deleteDocument(id: string, projectId: string) {
-  await prisma.document.delete({ where: { id } })
-  revalidatePath(`/obras/${projectId}`)
-  revalidatePath('/pro-formas')
+export async function deleteDocument(id: string, projectId?: string) {
+  try {
+    let resolvedProjectId = projectId
+    if (!resolvedProjectId) {
+      const doc = await prisma.document.findUnique({ where: { id }, select: { projectId: true } })
+      resolvedProjectId = doc?.projectId
+    }
+
+    await prisma.document.delete({ where: { id } })
+
+    if (resolvedProjectId) {
+      revalidatePath(`/obras/${resolvedProjectId}`)
+    }
+    revalidatePath('/pro-formas')
+    return { success: true }
+  } catch (error: any) {
+    console.error('Error deleting document:', error)
+    throw new Error(error?.message || 'Erro ao eliminar documento')
+  }
 }
 
 export async function getAllProFormas() {

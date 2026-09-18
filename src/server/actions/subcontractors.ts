@@ -56,8 +56,17 @@ export async function updateSubcontractor(id: string, data: Partial<{
 }
 
 export async function deleteSubcontractor(id: string) {
-  await prisma.subcontractor.delete({ where: { id } })
-  revalidatePath('/subempreiteiros')
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.subcontractorPayment.deleteMany({ where: { subcontractorId: id } })
+      await tx.subcontractor.delete({ where: { id } })
+    })
+    revalidatePath('/subempreiteiros')
+    return { success: true }
+  } catch (error: any) {
+    console.error('Error deleting subcontractor:', error)
+    throw new Error(error?.message || 'Erro ao eliminar subempreiteiro')
+  }
 }
 
 function sanitizeDate(date?: Date | string | null): Date | undefined {

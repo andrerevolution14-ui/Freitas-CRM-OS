@@ -72,10 +72,16 @@ export async function updateNote(
 }
 
 export async function deleteNote(id: string) {
-  const note = await prisma.note.delete({ where: { id } })
-  revalidatePath('/notas')
-  revalidatePath('/leads')
-  if (note.leadId) revalidatePath(`/leads/${note.leadId}`)
-  if (note.projectId) revalidatePath(`/obras/${note.projectId}`)
-  revalidatePath('/dashboard')
+  try {
+    const note = await prisma.note.delete({ where: { id } })
+    revalidatePath('/notas')
+    revalidatePath('/leads')
+    if (note.leadId) revalidatePath(`/leads/${note.leadId}`)
+    if (note.projectId) revalidatePath(`/obras/${note.projectId}`)
+    revalidatePath('/dashboard')
+    return { success: true }
+  } catch (error: any) {
+    console.error('Error deleting note:', error)
+    throw new Error(error?.message || 'Erro ao eliminar nota')
+  }
 }

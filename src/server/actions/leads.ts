@@ -76,43 +76,88 @@ export async function updateLead(
   data: Partial<{
     clientName: string
     phone: string
-    email: string
+    email: string | null
     address: string
     source: string
-    estimatedValue: number
+    estimatedValue: number | null
     status: string
     urgency: string
   }>
 ) {
-  const lead = await prisma.lead.update({
-    where: { id },
-    data,
-    include: {
-      project: true,
-      notes: {
-        orderBy: { createdAt: 'desc' },
-        include: { createdBy: { select: { id: true, name: true, color: true, image: true } } },
+  try {
+    const updatePayload: any = { ...data }
+    if ('estimatedValue' in updatePayload) {
+      if (
+        updatePayload.estimatedValue === '' ||
+        updatePayload.estimatedValue === null ||
+        updatePayload.estimatedValue === undefined
+      ) {
+        updatePayload.estimatedValue = null
+      } else {
+        const parsed = Number(updatePayload.estimatedValue)
+        updatePayload.estimatedValue = isNaN(parsed) ? null : parsed
+      }
+    }
+    if ('email' in updatePayload && !updatePayload.email) {
+      updatePayload.email = null
+    }
+
+    const lead = await prisma.lead.update({
+      where: { id },
+      data: updatePayload,
+      include: {
+        project: true,
+        notes: {
+          orderBy: { createdAt: 'desc' },
+          include: { createdBy: { select: { id: true, name: true, color: true, image: true } } },
+        },
+        _count: { select: { notes: true } },
+        createdBy: { select: { id: true, name: true, color: true } },
       },
-      _count: { select: { notes: true } },
-      createdBy: { select: { id: true, name: true, color: true } },
-    },
-  })
-  revalidatePath('/leads')
-  revalidatePath(`/leads/${id}`)
-  revalidatePath('/dashboard')
-  return lead
+    })
+    revalidatePath('/leads')
+    revalidatePath(`/leads/${id}`)
+    revalidatePath('/dashboard')
+    return lead
+  } catch (error: any) {
+    console.error('Error updating lead:', error)
+    throw new Error(error?.message || 'Erro ao atualizar lead')
+  }
 }
 
 export async function updateLeadStatus(id: string, status: string) {
-  const lead = await prisma.lead.update({ where: { id }, data: { status } })
-  revalidatePath('/leads')
-  revalidatePath('/dashboard')
-  return lead
+  try {
+    const lead = await prisma.lead.update({ where: { id }, data: { status } })
+    revalidatePath('/leads')
+    revalidatePath('/dashboard')
+    return lead
+  } catch (error: any) {
+    console.error('Error updating lead status:', error)
+    throw new Error(error?.message || 'Erro ao atualizar estado da lead')
+  }
 }
 
 export async function deleteLead(id: string) {
-  await prisma.lead.delete({ where: { id } })
-  revalidatePath('/leads')
+  try {
+    await prisma.$transaction(async (tx) => {
+      // 1. Delete all notes attached to this lead
+      await tx.note.deleteMany({ where: { leadId: id } })
+      // 2. Unlink any project referencing this lead so the Obra is not broken or blocking
+      await tx.project.updateMany({
+        where: { leadId: id },
+        data: { leadId: null },
+      })
+      // 3. Delete the lead itself
+      await tx.lead.delete({ where: { id } })
+    })
+
+    revalidatePath('/leads')
+    revalidatePath('/dashboard')
+    return { success: true }
+  } catch (error: any) {
+    console.error('Error deleting lead:', error)
+    throw new Error(error?.message || 'Erro ao eliminar lead')
+  }
 }
 
 function sanitizeDate(date?: Date | string | null): Date | undefined {

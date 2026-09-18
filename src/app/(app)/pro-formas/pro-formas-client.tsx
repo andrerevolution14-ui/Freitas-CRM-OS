@@ -97,8 +97,13 @@ export function ProFormasClient({ initialTemplates }: { initialTemplates: Genera
     if (!confirm('Tem a certeza que deseja remover este modelo da biblioteca geral?')) return
 
     startTransition(async () => {
-      await deleteGeneralTemplate(id)
-      setTemplates((prev) => prev.filter((t) => t.id !== id))
+      try {
+        await deleteGeneralTemplate(id)
+        setTemplates((prev) => prev.filter((t) => t.id !== id))
+      } catch (err: any) {
+        console.error('Error deleting template:', err)
+        alert(err?.message || 'Erro ao eliminar minuta')
+      }
     })
   }
 

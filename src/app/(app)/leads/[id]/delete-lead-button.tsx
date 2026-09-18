@@ -12,8 +12,13 @@ export function DeleteLeadButton({ leadId, clientName }: { leadId: string; clien
   function handleDelete() {
     if (!confirm(`Tem a certeza que deseja eliminar o contacto de "${clientName}" permanentemente?`)) return
     startTransition(async () => {
-      await deleteLead(leadId)
-      router.push('/leads')
+      try {
+        await deleteLead(leadId)
+        router.replace('/leads')
+      } catch (err: any) {
+        console.error('Error deleting lead:', err)
+        alert(err?.message || 'Erro ao eliminar lead')
+      }
     })
   }
 

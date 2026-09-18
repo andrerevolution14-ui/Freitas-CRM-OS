@@ -5,6 +5,7 @@ import { ArrowLeft, Phone, Mail, MapPin, Euro, Calendar, AlertCircle } from 'luc
 import { formatCurrency, formatDate, getStatusLabel, getUrgencyBadge, cn } from '@/lib/utils'
 import type { LeadStatus } from '@prisma/client'
 import { DeleteLeadButton } from './delete-lead-button'
+import { EditLeadButton } from './edit-lead-button'
 import { LeadNotesSection } from './lead-notes-section'
 
 const STATUS_COLOR: Record<LeadStatus, string> = {
@@ -49,7 +50,10 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             </div>
           </div>
         </div>
-        <DeleteLeadButton leadId={lead.id} clientName={lead.clientName} />
+        <div className="flex items-center gap-2">
+          <EditLeadButton lead={lead as any} />
+          <DeleteLeadButton leadId={lead.id} clientName={lead.clientName} />
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

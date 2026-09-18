@@ -74,8 +74,13 @@ export function ObraDetailClient({ project: initialProject, subcontractors }: { 
   async function handleDeleteProject() {
     if (!confirm(`Eliminar a obra "${project.title}" permanentemente? Todos os registos associados serão eliminados.`)) return
     startTransition(async () => {
-      await deleteProject(project.id)
-      router.push('/obras')
+      try {
+        await deleteProject(project.id)
+        router.replace('/obras')
+      } catch (err: any) {
+        console.error('Error deleting project:', err)
+        alert(err?.message || 'Erro ao eliminar obra')
+      }
     })
   }
 
@@ -147,9 +152,15 @@ export function ObraDetailClient({ project: initialProject, subcontractors }: { 
   }
 
   async function handleDeleteExpense(id: string) {
+    if (!confirm('Eliminar esta despesa permanentemente?')) return
     startTransition(async () => {
-      await deleteExpense(id, project.id)
-      setProject(p => ({ ...p, expenses: p.expenses.filter(e => e.id !== id) }))
+      try {
+        await deleteExpense(id, project.id)
+        setProject(p => ({ ...p, expenses: p.expenses.filter(e => e.id !== id) }))
+      } catch (err: any) {
+        console.error('Error deleting expense:', err)
+        alert(err?.message || 'Erro ao eliminar despesa')
+      }
     })
   }
 
@@ -177,9 +188,15 @@ export function ObraDetailClient({ project: initialProject, subcontractors }: { 
   }
 
   async function handleDeleteTranche(id: string) {
+    if (!confirm('Eliminar esta tranche permanentemente?')) return
     startTransition(async () => {
-      await deleteClientTranche(id, project.id)
-      setProject(p => ({ ...p, clientTranches: p.clientTranches.filter(t => t.id !== id) }))
+      try {
+        await deleteClientTranche(id, project.id)
+        setProject(p => ({ ...p, clientTranches: p.clientTranches.filter(t => t.id !== id) }))
+      } catch (err: any) {
+        console.error('Error deleting tranche:', err)
+        alert(err?.message || 'Erro ao eliminar tranche')
+      }
     })
   }
 
@@ -218,9 +235,15 @@ export function ObraDetailClient({ project: initialProject, subcontractors }: { 
   }
 
   async function handleDeleteNote(id: string) {
+    if (!confirm('Eliminar esta nota permanentemente?')) return
     startTransition(async () => {
-      await deleteNote(id)
-      setProject(p => ({ ...p, notes: p.notes.filter(n => n.id !== id) }))
+      try {
+        await deleteNote(id)
+        setProject(p => ({ ...p, notes: p.notes.filter(n => n.id !== id) }))
+      } catch (err: any) {
+        console.error('Error deleting note:', err)
+        alert(err?.message || 'Erro ao eliminar nota')
+      }
     })
   }
 
@@ -257,9 +280,15 @@ export function ObraDetailClient({ project: initialProject, subcontractors }: { 
   }
 
   async function handleDeleteDoc(id: string) {
+    if (!confirm('Eliminar este documento permanentemente?')) return
     startTransition(async () => {
-      await deleteDocument(id, project.id)
-      setProject(p => ({ ...p, documents: p.documents.filter(d => d.id !== id) }))
+      try {
+        await deleteDocument(id, project.id)
+        setProject(p => ({ ...p, documents: p.documents.filter(d => d.id !== id) }))
+      } catch (err: any) {
+        console.error('Error deleting document:', err)
+        alert(err?.message || 'Erro ao eliminar documento')
+      }
     })
   }
 

@@ -1,7 +1,8 @@
 'use server'
 
 import { readFile, writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
+import { existsSync } from 'fs'
+import { join, dirname } from 'path'
 import { revalidatePath } from 'next/cache'
 
 export interface GeneralTemplate {
@@ -98,7 +99,7 @@ export async function getGeneralTemplates(): Promise<GeneralTemplate[]> {
   try {
     const raw = await readFile(DATA_FILE_PATH, 'utf-8')
     const parsed = JSON.parse(raw)
-    if (Array.isArray(parsed) && parsed.length > 0) {
+    if (Array.isArray(parsed)) {
       return parsed
     }
   } catch {
@@ -106,7 +107,7 @@ export async function getGeneralTemplates(): Promise<GeneralTemplate[]> {
   }
 
   try {
-    await mkdir(join(process.cwd(), 'src', 'data'), { recursive: true })
+    await mkdir(dirname(DATA_FILE_PATH), { recursive: true })
     await writeFile(DATA_FILE_PATH, JSON.stringify(DEFAULT_TEMPLATES, null, 2), 'utf-8')
   } catch (err) {
     console.error('Error seeding default templates:', err)
@@ -139,7 +140,7 @@ export async function createGeneralTemplate(data: {
   }
 
   const updated = [newTemplate, ...current]
-  await mkdir(join(process.cwd(), 'src', 'data'), { recursive: true })
+  await mkdir(dirname(DATA_FILE_PATH), { recursive: true })
   await writeFile(DATA_FILE_PATH, JSON.stringify(updated, null, 2), 'utf-8')
 
   revalidatePath('/pro-formas')
@@ -147,10 +148,16 @@ export async function createGeneralTemplate(data: {
 }
 
 export async function deleteGeneralTemplate(id: string): Promise<boolean> {
-  const current = await getGeneralTemplates()
-  const filtered = current.filter((t) => t.id !== id)
-  await writeFile(DATA_FILE_PATH, JSON.stringify(filtered, null, 2), 'utf-8')
+  try {
+    const current = await getGeneralTemplates()
+    const filtered = current.filter((t) => t.id !== id)
+    await mkdir(dirname(DATA_FILE_PATH), { recursive: true })
+    await writeFile(DATA_FILE_PATH, JSON.stringify(filtered, null, 2), 'utf-8')
 
-  revalidatePath('/pro-formas')
-  return true
+    revalidatePath('/pro-formas')
+    return true
+  } catch (error: any) {
+    console.error('Error deleting general template:', error)
+    throw new Error(error?.message || 'Erro ao eliminar minuta pró-forma')
+  }
 }
