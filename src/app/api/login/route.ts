@@ -4,10 +4,14 @@ import { prisma } from '@/lib/prisma'
 import bcrypt from 'bcryptjs'
 
 const SECRET = process.env.NEXTAUTH_SECRET || 'freitas-renovacoes-secret-2024-super-secure'
-// NextAuth uses this cookie name on HTTP, and __Secure- prefix on HTTPS
-const COOKIE_NAME = process.env.NEXTAUTH_URL?.startsWith('https')
-  ? '__Secure-next-auth.session-token'
-  : 'next-auth.session-token'
+
+function normalizeStr(str: string): string {
+  return (str || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,29 +23,58 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Nome de utilizador e palavra-passe são obrigatórios.' }, { status: 400 })
     }
 
-    // Find user in database by username or email
-    const user = await prisma.user.findFirst({
+    // 1. First attempt: direct case-insensitive match on username, email, or name
+    let user = await prisma.user.findFirst({
       where: {
         OR: [
           { username: { equals: identifier, mode: 'insensitive' } },
           { email: { equals: identifier, mode: 'insensitive' } },
+          { name: { equals: identifier, mode: 'insensitive' } },
         ],
       },
     })
 
+    // 2. Second attempt: accent-insensitive and prefix match (e.g. "André", "andre", "AndréQ" -> "AndreQ")
     if (!user) {
-      console.log(`[LOGIN] Utilizador não encontrado: ${identifier}`)
-      return NextResponse.json({ error: 'Credenciais inválidas.' }, { status: 401 })
+      const normTarget = normalizeStr(identifier)
+      if (normTarget) {
+        const allUsers = await prisma.user.findMany()
+        user = allUsers.find((u) => {
+          const uNorm = normalizeStr(u.username || '')
+          const eNorm = normalizeStr(u.email || '')
+          const nNorm = normalizeStr(u.name || '')
+          return (
+            uNorm === normTarget ||
+            eNorm === normTarget ||
+            nNorm === normTarget ||
+            uNorm.startsWith(normTarget) ||
+            nNorm.startsWith(normTarget) ||
+            normTarget.startsWith(uNorm)
+          )
+        }) || null
+      }
     }
 
-    // Verify password via bcrypt
-    const isValid = await bcrypt.compare(password, user.password)
+    if (!user) {
+      console.log(`[LOGIN] Utilizador não encontrado para: "${identifier}"`)
+      return NextResponse.json({ error: 'Credenciais inválidas. Verifique o utilizador.' }, { status: 401 })
+    }
+
+    // 3. Verify password: check exact match first, then normalized lowercase (handles mobile keyboard autocorrect/autocapitalize)
+    let isValid = await bcrypt.compare(password, user.password)
     if (!isValid) {
-      console.log(`[LOGIN] Palavra-passe incorreta para: ${identifier}`)
-      return NextResponse.json({ error: 'Credenciais inválidas.' }, { status: 401 })
+      const normPassword = password.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+      if (normPassword !== password) {
+        isValid = await bcrypt.compare(normPassword, user.password)
+      }
     }
 
-    // Build the same JWT payload that NextAuth would build
+    if (!isValid) {
+      console.log(`[LOGIN] Palavra-passe incorreta para utilizador: ${user.username || user.email}`)
+      return NextResponse.json({ error: 'Palavra-passe incorreta.' }, { status: 401 })
+    }
+
+    // Build the same JWT payload that NextAuth builds
     const now = Math.floor(Date.now() / 1000)
     const thirtyDays = 30 * 24 * 60 * 60
     const token = await encode({
@@ -64,23 +97,29 @@ export async function POST(req: NextRequest) {
     const isSecure = req.headers.get('x-forwarded-proto') === 'https' ||
                      req.nextUrl.protocol === 'https:'
 
-    const cookieName = isSecure
-      ? '__Secure-next-auth.session-token'
-      : 'next-auth.session-token'
+    const response = NextResponse.json({ ok: true, user: { name: user.name, role: user.role } }, { status: 200 })
 
-    const cookieOptions = [
-      `${cookieName}=${token}`,
-      'Path=/',
-      'HttpOnly',
-      `Max-Age=${thirtyDays}`,
-      `SameSite=Lax`,
-      ...(isSecure ? ['Secure'] : []),
-    ].join('; ')
+    // Set standard session cookie
+    response.cookies.set('next-auth.session-token', token, {
+      path: '/',
+      httpOnly: true,
+      maxAge: thirtyDays,
+      sameSite: 'lax',
+      secure: isSecure,
+    })
 
-    const response = NextResponse.json({ ok: true }, { status: 200 })
-    response.headers.set('Set-Cookie', cookieOptions)
+    // If HTTPS, also set the __Secure- prefixed cookie for NextAuth strict matching
+    if (isSecure) {
+      response.cookies.set('__Secure-next-auth.session-token', token, {
+        path: '/',
+        httpOnly: true,
+        maxAge: thirtyDays,
+        sameSite: 'lax',
+        secure: true,
+      })
+    }
 
-    console.log(`[LOGIN] Sessão criada para: ${user.email} (cookie: ${cookieName})`)
+    console.log(`[LOGIN] Sessão criada com sucesso para: ${user.email} (${user.name})`)
     return response
 
   } catch (err) {

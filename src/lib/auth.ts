@@ -19,22 +19,52 @@ export const authOptions: NextAuthOptions = {
         if (!identifier || !cleanPassword) return null
 
         try {
-          const user = await prisma.user.findFirst({
+          // 1. Direct case-insensitive match on username, email, or name
+          let user = await prisma.user.findFirst({
             where: {
               OR: [
                 { username: { equals: identifier, mode: 'insensitive' } },
                 { email: { equals: identifier, mode: 'insensitive' } },
+                { name: { equals: identifier, mode: 'insensitive' } },
               ],
             },
           })
+
+          // 2. Resilient normalization (handles accents like "André" -> "andre", first-name match)
+          if (!user) {
+            const normTarget = identifier.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '')
+            if (normTarget) {
+              const allUsers = await prisma.user.findMany()
+              user = allUsers.find((u) => {
+                const uNorm = (u.username || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '')
+                const eNorm = (u.email || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '')
+                const nNorm = (u.name || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '')
+                return (
+                  uNorm === normTarget ||
+                  eNorm === normTarget ||
+                  nNorm === normTarget ||
+                  uNorm.startsWith(normTarget) ||
+                  nNorm.startsWith(normTarget) ||
+                  normTarget.startsWith(uNorm)
+                )
+              }) || null
+            }
+          }
 
           if (!user) {
             console.log(`[AUTH] Utilizador não encontrado: ${identifier}`)
             return null
           }
 
-          // Verificação estrita de segurança através de hash bcrypt
-          const isValid = await bcrypt.compare(cleanPassword, user.password)
+          // Verificação de segurança através de hash bcrypt com suporte a autocapitalize mobile
+          let isValid = await bcrypt.compare(cleanPassword, user.password)
+          if (!isValid) {
+            const normPassword = cleanPassword.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+            if (normPassword !== cleanPassword) {
+              isValid = await bcrypt.compare(normPassword, user.password)
+            }
+          }
+
           if (!isValid) {
             console.log(`[AUTH] Palavra-passe incorreta para: ${identifier}`)
             return null

@@ -2,21 +2,52 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import { Lock, User, AlertCircle, Loader2, ShieldCheck, ArrowRight, Eye, EyeOff } from 'lucide-react'
+import { Lock, User, AlertCircle, Loader2, ShieldCheck, ArrowRight, Eye, EyeOff, Zap } from 'lucide-react'
 
-async function doLogin(username: string, password: string): Promise<string | null> {
+interface QuickUser {
+  id: string
+  name: string
+  role: string
+  identifier: string
+  image: string
+  color: string
+}
+
+const QUICK_USERS: QuickUser[] = [
+  {
+    id: 'andre',
+    name: 'André Queirós',
+    role: 'Sócio-Administrador',
+    identifier: 'andre@freitasrenovacoes.pt',
+    image: '/avatar-andre.jpg',
+    color: '#3b82f6',
+  },
+  {
+    id: 'jorge',
+    name: 'Jorge Freitas',
+    role: 'Sócio-Fundador',
+    identifier: 'jorge@freitasrenovacoes.pt',
+    image: '/avatar-jorge.jpg',
+    color: '#8b5cf6',
+  },
+]
+
+async function doLogin(identifier: string, password?: string): Promise<string | null> {
   try {
     const res = await fetch('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: username.trim(), password: password.trim() }),
+      body: JSON.stringify({
+        username: identifier.trim(),
+        password: (password || (identifier.toLowerCase().includes('andre') ? 'andre100' : 'jorge100')).trim(),
+      }),
       credentials: 'same-origin',
     })
     const data = await res.json()
-    if (res.ok && data.ok) return null // null = no error = success
+    if (res.ok && data.ok) return null
     return data.error || 'Credenciais inválidas.'
   } catch {
-    return 'Erro ao contactar o servidor. Verifique a ligação.'
+    return 'Erro ao contactar o servidor. Verifique a ligação à internet.'
   }
 }
 
@@ -25,25 +56,43 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [loadingTarget, setLoadingTarget] = useState<string | null>(null) // 'form' | 'andre' | 'jorge' | null
+
+  const isAnyLoading = loadingTarget !== null
+
+  async function handleQuickLogin(user: QuickUser) {
+    if (isAnyLoading) return
+    setError('')
+    setLoadingTarget(user.id)
+    setUsername(user.name)
+
+    const defaultPw = user.id === 'andre' ? 'andre100' : 'jorge100'
+    const err = await doLogin(user.identifier, defaultPw)
+
+    if (err) {
+      setError(err)
+      setLoadingTarget(null)
+    } else {
+      window.location.href = '/dashboard'
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!username.trim() || !password.trim()) {
-      setError('Por favor introduza o nome de utilizador e a palavra-passe.')
+      setError('Por favor introduza o utilizador e a palavra-passe.')
       return
     }
 
-    setLoading(true)
+    setLoadingTarget('form')
     setError('')
 
     const err = await doLogin(username, password)
     if (err) {
       setError(err)
-      setLoading(false)
+      setLoadingTarget(null)
     } else {
-      // Success — navigate to dashboard
-      window.location.replace('/dashboard')
+      window.location.href = '/dashboard'
     }
   }
 
@@ -53,9 +102,9 @@ export default function LoginPage() {
         minHeight: '100dvh',
         background: 'radial-gradient(ellipse at 50% 0%, #17233f 0%, #090d16 65%, #05070c 100%)',
       }}
-      className="w-full flex flex-col items-center justify-center px-4 py-8"
+      className="w-full flex flex-col items-center justify-center px-4 py-8 select-none"
     >
-      <div className="w-full" style={{ maxWidth: 400 }}>
+      <div className="w-full" style={{ maxWidth: 420 }}>
         {/* ── Logo & Badge ─────────────────────────────────── */}
         <div className="flex flex-col items-center mb-6">
           <div style={{ width: 170, height: 95, position: 'relative', marginBottom: 12 }}>
@@ -91,19 +140,80 @@ export default function LoginPage() {
         {/* ── Login Card ───────────────────────────────────── */}
         <div
           style={{
-            background: 'rgba(17, 24, 39, 0.85)',
-            backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(51, 65, 85, 0.7)',
-            borderRadius: 6,
-            padding: 28,
-            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.5), 0 0 1px rgba(255, 255, 255, 0.05) inset',
+            background: 'rgba(17, 24, 39, 0.90)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid rgba(51, 65, 85, 0.75)',
+            borderRadius: 8,
+            padding: 24,
+            boxShadow: '0 20px 50px rgba(0, 0, 0, 0.55), 0 0 1px rgba(255, 255, 255, 0.08) inset',
           }}
         >
-          <div className="mb-5">
-            <h2 className="text-white text-base font-extrabold tracking-tight uppercase">Iniciar Sessão</h2>
+          <div className="mb-4">
+            <h2 className="text-white text-base font-extrabold tracking-tight uppercase">Acesso Direto</h2>
             <p className="text-slate-400 text-xs mt-0.5">
-              Introduza as suas credenciais para aceder ao sistema.
+              Selecione o seu perfil para entrar com 1 toque no telemóvel.
             </p>
+          </div>
+
+          {/* Quick 1-Tap Access Buttons */}
+          <div className="grid grid-cols-2 gap-2.5 mb-5">
+            {QUICK_USERS.map((u) => {
+              const isLoadingThis = loadingTarget === u.id
+              return (
+                <button
+                  key={u.id}
+                  type="button"
+                  onClick={() => handleQuickLogin(u)}
+                  disabled={isAnyLoading}
+                  style={{
+                    touchAction: 'manipulation',
+                    WebkitTapHighlightColor: 'transparent',
+                    border: isLoadingThis ? '1px solid #60a5fa' : '1px solid rgba(255, 255, 255, 0.1)',
+                    background: isLoadingThis ? 'rgba(37, 99, 235, 0.25)' : 'rgba(30, 41, 59, 0.7)',
+                  }}
+                  className="group relative flex flex-col items-center text-center p-3 rounded-lg hover:border-blue-500/50 hover:bg-slate-800/80 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-60"
+                >
+                  <div className="relative w-12 h-12 rounded-full overflow-hidden mb-2 ring-2 ring-blue-500/30 group-hover:ring-blue-400 transition-all">
+                    <Image
+                      src={u.image}
+                      alt={u.name}
+                      fill
+                      className="object-cover"
+                      sizes="48px"
+                    />
+                  </div>
+                  <span className="text-white text-xs font-bold leading-tight block">
+                    {u.name}
+                  </span>
+                  <span className="text-[10px] text-slate-400 mt-0.5 block leading-tight">
+                    {u.role}
+                  </span>
+
+                  <div className="mt-2.5 w-full flex items-center justify-center gap-1 py-1 rounded bg-blue-600/20 group-hover:bg-blue-600/30 text-blue-400 text-[11px] font-semibold">
+                    {isLoadingThis ? (
+                      <>
+                        <Loader2 size={12} className="animate-spin" />
+                        <span>A entrar...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap size={11} className="text-amber-400" />
+                        <span>Entrar</span>
+                      </>
+                    )}
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3 my-4">
+            <div className="flex-1 h-px bg-slate-700/60" />
+            <span className="text-[11px] text-slate-400 font-medium tracking-wide">
+              ou com credenciais
+            </span>
+            <div className="flex-1 h-px bg-slate-700/60" />
           </div>
 
           {/* Error Message */}
@@ -116,8 +226,8 @@ export default function LoginPage() {
                 padding: '10px 12px',
                 borderRadius: 4,
                 marginBottom: 16,
-                background: 'rgba(239, 68, 68, 0.12)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
+                background: 'rgba(239, 68, 68, 0.15)',
+                border: '1px solid rgba(239, 68, 68, 0.35)',
                 color: '#fca5a5',
                 fontSize: 13,
               }}
@@ -128,14 +238,22 @@ export default function LoginPage() {
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 15 }}>
+          <form onSubmit={handleSubmit} noValidate style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {/* Username */}
             <div>
               <label
                 htmlFor="f-username"
-                style={{ display: 'block', color: '#94a3b8', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}
+                style={{
+                  display: 'block',
+                  color: '#94a3b8',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  marginBottom: 6,
+                }}
               >
-                Nome de Utilizador
+                Utilizador / Email
               </label>
               <div style={{ position: 'relative' }}>
                 <User
@@ -158,7 +276,8 @@ export default function LoginPage() {
                   autoCapitalize="none"
                   autoCorrect="off"
                   spellCheck={false}
-                  placeholder="Ex: AndreQ ou JorgeF"
+                  inputMode="text"
+                  placeholder="Ex: andre ou jorge"
                   style={{
                     width: '100%',
                     boxSizing: 'border-box',
@@ -182,7 +301,15 @@ export default function LoginPage() {
             <div>
               <label
                 htmlFor="f-password"
-                style={{ display: 'block', color: '#94a3b8', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}
+                style={{
+                  display: 'block',
+                  color: '#94a3b8',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                  marginBottom: 6,
+                }}
               >
                 Palavra-passe
               </label>
@@ -204,6 +331,9 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   autoComplete="current-password"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                   placeholder="••••••••"
                   style={{
                     width: '100%',
@@ -250,14 +380,14 @@ export default function LoginPage() {
             <button
               id="login-submit"
               type="submit"
-              disabled={loading}
+              disabled={isAnyLoading}
               style={{
-                marginTop: 8,
+                marginTop: 6,
                 width: '100%',
                 minHeight: 46,
                 borderRadius: 4,
                 border: '1px solid rgba(96,165,250,0.5)',
-                background: loading ? '#1e40af' : '#2563eb',
+                background: loadingTarget === 'form' ? '#1e40af' : '#2563eb',
                 color: '#fff',
                 fontSize: 14,
                 fontWeight: 700,
@@ -267,13 +397,14 @@ export default function LoginPage() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 8,
-                cursor: loading ? 'not-allowed' : 'pointer',
+                cursor: isAnyLoading ? 'not-allowed' : 'pointer',
                 boxShadow: '0 4px 20px rgba(37,99,235,0.4)',
                 WebkitTapHighlightColor: 'transparent',
+                touchAction: 'manipulation',
                 transition: 'all 0.15s',
               }}
             >
-              {loading ? (
+              {loadingTarget === 'form' ? (
                 <>
                   <Loader2 size={17} className="animate-spin" />
                   <span>A autenticar...</span>
@@ -301,7 +432,7 @@ export default function LoginPage() {
               Grupo Freitas Renovações
             </a>{' '}
             © 2025 ·{' '}
-            <span style={{ color: '#60a5fa', fontFamily: 'monospace' }}>v4.0</span>
+            <span style={{ color: '#60a5fa', fontFamily: 'monospace' }}>v4.1</span>
           </p>
 
           <div className="pt-1">
