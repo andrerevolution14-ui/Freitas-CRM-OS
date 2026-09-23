@@ -93,9 +93,11 @@ export async function POST(req: NextRequest) {
       maxAge: thirtyDays,
     })
 
-    // Determine if we're on HTTPS (production)
+    // Determine if we're on HTTPS (production / Vercel)
     const isSecure = req.headers.get('x-forwarded-proto') === 'https' ||
-                     req.nextUrl.protocol === 'https:'
+                     req.nextUrl.protocol === 'https:' ||
+                     Boolean(process.env.VERCEL) ||
+                     Boolean(process.env.NEXTAUTH_URL?.startsWith('https'))
 
     const response = NextResponse.json({ ok: true, user: { name: user.name, role: user.role } }, { status: 200 })
 

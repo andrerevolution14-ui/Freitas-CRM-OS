@@ -73,7 +73,8 @@ export default function LoginPage() {
       setError(err)
       setLoadingTarget(null)
     } else {
-      window.location.href = '/dashboard'
+      await new Promise((r) => setTimeout(r, 150))
+      window.location.replace('/dashboard')
     }
   }
 
@@ -92,7 +93,8 @@ export default function LoginPage() {
       setError(err)
       setLoadingTarget(null)
     } else {
-      window.location.href = '/dashboard'
+      await new Promise((r) => setTimeout(r, 150))
+      window.location.replace('/dashboard')
     }
   }
 
