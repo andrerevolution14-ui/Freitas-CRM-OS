@@ -38,6 +38,10 @@ interface ProjectItem {
   contractValue: number
   totalExpenses: number
   status: string
+  provisionalProfit?: number | null
+  andrePaid?: boolean
+  jorgePaid?: boolean
+  profitShareSettled?: boolean
   startDate: Date | string | null
   endDate: Date | string | null
   createdAt: Date | string
@@ -78,6 +82,13 @@ interface Stats {
   totalExpenses: number
   totalProfit: number
   avgMargin: number
+  completedProjectsCount?: number
+  completedReceivedRevenue?: number
+  completedExpenses?: number
+  andreShare?: number
+  jorgeShare?: number
+  andreSettled?: number
+  jorgeSettled?: number
   pendingReceivables: number
   pendingPayables: number
   paidReceivables?: number
@@ -169,6 +180,12 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
   const filteredData = useMemo(() => {
     if (!cutoffDate) {
       const bankBalance = stats.bankBalance ?? ((stats.paidReceivables ?? 0) - (stats.totalCashOut ?? 0))
+      const andreShare = stats.andreShare ?? (stats.totalProfit > 0 ? stats.totalProfit * 0.4 : 0)
+      const jorgeShare = stats.jorgeShare ?? (stats.totalProfit > 0 ? stats.totalProfit * 0.6 : 0)
+      const andreSettled = stats.andreSettled ?? 0
+      const jorgeSettled = stats.jorgeSettled ?? 0
+      const completedCount = stats.completedProjectsCount ?? stats.projects.filter(p => p.status === 'CONCLUIDA').length
+
       return {
         revenue: stats.totalRevenue,
         expenses: stats.totalExpenses,
@@ -176,6 +193,11 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
         margin: stats.avgMargin,
         activeProjects: stats.activeProjectCount,
         totalProjects: stats.projectCount,
+        completedProjectsCount: completedCount,
+        andreShare,
+        jorgeShare,
+        andreSettled,
+        jorgeSettled,
         pendingReceivables: stats.pendingReceivables,
         pendingPayables: stats.pendingPayables,
         paidReceivables: stats.paidReceivables ?? 0,
@@ -201,8 +223,39 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
 
     // Revenue in range (from projects started/created in range)
     const totalRevenue = fProjects.reduce((sum, p) => sum + p.contractValue, 0)
-    const profit = totalRevenue - totalExpenses
-    const margin = totalRevenue > 0 ? (profit / totalRevenue) * 100 : 0
+
+    // Lucro Bruto estritamente de contratos concluídos e recebidos no range
+    const fCompletedProjects = fProjects.filter((p) => p.status === 'CONCLUIDA')
+    const completedReceived = fCompletedProjects
+      .flatMap((p) => p.clientTranches || [])
+      .filter((t) => t.status === 'PAGO' || t.paidDate != null)
+      .reduce((sum, t) => sum + t.amount, 0)
+    const completedExp = fCompletedProjects
+      .flatMap((p) => p.expenses || [])
+      .reduce((sum, e) => sum + e.amount, 0)
+    const profit = completedReceived - completedExp
+    const margin = completedReceived > 0 ? (profit / completedReceived) * 100 : 0
+
+    // Partilha 40% André / 60% Jorge
+    const andreShare = profit > 0 ? profit * 0.4 : 0
+    const jorgeShare = profit > 0 ? profit * 0.6 : 0
+
+    const andreSettled = fCompletedProjects
+      .filter((p) => p.andrePaid)
+      .reduce((sum, p) => {
+        const rec = (p.clientTranches || []).filter((t) => t.status === 'PAGO' || t.paidDate != null).reduce((s, t) => s + t.amount, 0)
+        const exp = (p.expenses || []).reduce((s, e) => s + e.amount, 0)
+        const pr = rec - exp
+        return sum + (pr > 0 ? pr * 0.4 : 0)
+      }, 0)
+    const jorgeSettled = fCompletedProjects
+      .filter((p) => p.jorgePaid)
+      .reduce((sum, p) => {
+        const rec = (p.clientTranches || []).filter((t) => t.status === 'PAGO' || t.paidDate != null).reduce((s, t) => s + t.amount, 0)
+        const exp = (p.expenses || []).reduce((s, e) => s + e.amount, 0)
+        const pr = rec - exp
+        return sum + (pr > 0 ? pr * 0.6 : 0)
+      }, 0)
 
     // Tranches in range
     const fTranches = (stats.rawTranches || []).filter((t) => new Date(t.dueDate) >= cutoffDate)
@@ -239,6 +292,11 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
       margin: margin,
       activeProjects: fProjects.filter((p) => p.status === 'EM_EXECUCAO').length,
       totalProjects: fProjects.length,
+      completedProjectsCount: fCompletedProjects.length,
+      andreShare,
+      jorgeShare,
+      andreSettled,
+      jorgeSettled,
       pendingReceivables,
       pendingPayables,
       paidReceivables,
@@ -474,12 +532,12 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
             <p className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">
               {formatCurrency(filteredData.profit)}
             </p>
-            <p className="text-[11px] sm:text-xs font-medium text-slate-500 mt-1">Lucro Bruto</p>
+            <p className="text-[11px] sm:text-xs font-medium text-slate-500 mt-1">Lucro Bruto Real</p>
           </div>
           <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-[10px] sm:text-xs text-slate-500">
-            <span>Rentabilidade</span>
+            <span>{filteredData.completedProjectsCount} {filteredData.completedProjectsCount === 1 ? 'obra concluída' : 'obras concluídas'}</span>
             <span className={cn('font-semibold', filteredData.profit >= 0 ? 'text-emerald-700' : 'text-red-700')}>
-              {filteredData.profit >= 0 ? '+ Lucro' : '- Défice'}
+              Só recebido
             </span>
           </div>
         </Link>
@@ -506,6 +564,131 @@ export function DashboardClient({ stats, leads, initialNotes }: Props) {
             <span className="text-purple-600 font-medium">Ativo →</span>
           </div>
         </Link>
+      </div>
+
+      {/* ── CARTÃO: PARTILHA DE RESULTADOS (40% ANDRÉ / 60% JORGE) ── */}
+      <div className="rounded-[4px] bg-white border border-slate-200 p-4 sm:p-5 shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 pb-3 border-b border-slate-100">
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-[4px] bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700 font-bold text-xs">
+                %
+              </div>
+              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                Partilha de Resultados dos Sócios (40% / 60%)
+              </h2>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-[3px] bg-slate-100 text-slate-700 border border-slate-200">
+                {filteredData.completedProjectsCount} {filteredData.completedProjectsCount === 1 ? 'Contrato Concluído' : 'Contratos Concluídos'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              Calculado estritamente sobre contratos realmente fechados, terminados e valores recebidos ({formatCurrency(filteredData.profit)} de lucro total apurado).
+            </p>
+          </div>
+
+          <Link
+            href="/obras"
+            className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1 self-start md:self-auto"
+          >
+            Ver & Assinalar por Obra →
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          {/* André Queirós - 40% */}
+          <div className="p-4 rounded-[4px] bg-slate-50/70 border border-slate-200 relative flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
+                    AQ
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-900">André Queirós</h3>
+                    <span className="text-[10.5px] font-bold text-blue-600 uppercase tracking-wider">Quota: 40%</span>
+                  </div>
+                </div>
+
+                <span
+                  className={cn(
+                    'text-[10px] font-bold px-2 py-0.5 rounded-[3px] border uppercase tracking-wider',
+                    filteredData.andreShare > 0 && filteredData.andreSettled >= filteredData.andreShare
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : 'bg-amber-50 text-amber-700 border-amber-200'
+                  )}
+                >
+                  {filteredData.andreShare > 0 && filteredData.andreSettled >= filteredData.andreShare
+                    ? 'Liquidado'
+                    : 'Pendente'}
+                </span>
+              </div>
+
+              <div className="space-y-2 pt-2 border-t border-slate-200/60 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Valor Correspondente (40%):</span>
+                  <span className="font-bold text-slate-900">{formatCurrency(filteredData.andreShare)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Já Assinalado / Liquidado:</span>
+                  <span className="font-semibold text-emerald-600">{formatCurrency(filteredData.andreSettled)}</span>
+                </div>
+                <div className="flex justify-between pt-1 border-t border-slate-200/60 font-medium">
+                  <span className="text-slate-700">A Liquidar:</span>
+                  <span className={cn('font-bold', filteredData.andreShare - filteredData.andreSettled > 0 ? 'text-amber-600' : 'text-slate-400')}>
+                    {formatCurrency(Math.max(0, filteredData.andreShare - filteredData.andreSettled))}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Jorge Freitas - 60% */}
+          <div className="p-4 rounded-[4px] bg-slate-50/70 border border-slate-200 relative flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-full bg-purple-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
+                    JF
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-900">Jorge Freitas</h3>
+                    <span className="text-[10.5px] font-bold text-purple-600 uppercase tracking-wider">Quota: 60%</span>
+                  </div>
+                </div>
+
+                <span
+                  className={cn(
+                    'text-[10px] font-bold px-2 py-0.5 rounded-[3px] border uppercase tracking-wider',
+                    filteredData.jorgeShare > 0 && filteredData.jorgeSettled >= filteredData.jorgeShare
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : 'bg-amber-50 text-amber-700 border-amber-200'
+                  )}
+                >
+                  {filteredData.jorgeShare > 0 && filteredData.jorgeSettled >= filteredData.jorgeShare
+                    ? 'Liquidado'
+                    : 'Pendente'}
+                </span>
+              </div>
+
+              <div className="space-y-2 pt-2 border-t border-slate-200/60 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Valor Correspondente (60%):</span>
+                  <span className="font-bold text-slate-900">{formatCurrency(filteredData.jorgeShare)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Já Assinalado / Liquidado:</span>
+                  <span className="font-semibold text-emerald-600">{formatCurrency(filteredData.jorgeSettled)}</span>
+                </div>
+                <div className="flex justify-between pt-1 border-t border-slate-200/60 font-medium">
+                  <span className="text-slate-700">A Liquidar:</span>
+                  <span className={cn('font-bold', filteredData.jorgeShare - filteredData.jorgeSettled > 0 ? 'text-amber-600' : 'text-slate-400')}>
+                    {formatCurrency(Math.max(0, filteredData.jorgeShare - filteredData.jorgeSettled))}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* PROMINENTE E NO TOPO: NOTAS RÁPIDAS + MARGEM GLOBAL */}

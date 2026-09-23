@@ -1,12 +1,13 @@
 import { getLead } from '@/server/actions/leads'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Phone, Mail, MapPin, Euro, Calendar, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Phone, Mail, MapPin, Euro, Calendar, AlertCircle, TrendingUp } from 'lucide-react'
 import { formatCurrency, formatDate, getStatusLabel, getUrgencyBadge, cn } from '@/lib/utils'
 import type { LeadStatus } from '@prisma/client'
 import { DeleteLeadButton } from './delete-lead-button'
 import { EditLeadButton } from './edit-lead-button'
 import { LeadNotesSection } from './lead-notes-section'
+import { LeadProfitShareSection } from './lead-profit-share'
 
 const STATUS_COLOR: Record<LeadStatus, string> = {
   NOVA_LEAD: 'badge-blue',
@@ -56,6 +57,15 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
         </div>
       </div>
 
+      {/* Widget de Divisão de Lucro Provisório */}
+      <LeadProfitShareSection
+        leadId={lead.id}
+        provisionalProfit={lead.provisionalProfit}
+        initialAndrePaid={lead.andrePaid}
+        initialJorgePaid={lead.jorgePaid}
+        initialProfitShareSettled={lead.profitShareSettled}
+      />
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-white border border-slate-200 rounded-[4px] p-5 space-y-4 shadow-sm">
           <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500">Informação do Cliente</h2>
@@ -83,7 +93,13 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             {lead.estimatedValue && (
               <div className="flex items-center gap-3 text-sm">
                 <Euro className="w-4 h-4 text-slate-400" />
-                <span className="text-emerald-600 font-bold">{formatCurrency(lead.estimatedValue)}</span>
+                <span className="text-slate-700 text-xs">Valor do Negócio: <strong className="text-slate-900 text-sm font-bold ml-1">{formatCurrency(lead.estimatedValue)}</strong></span>
+              </div>
+            )}
+            {lead.provisionalProfit && (
+              <div className="flex items-center gap-3 text-sm">
+                <TrendingUp className="w-4 h-4 text-emerald-600" />
+                <span className="text-slate-700 text-xs">Lucro Provisório: <strong className="text-emerald-700 text-sm font-bold ml-1">{formatCurrency(lead.provisionalProfit)}</strong></span>
               </div>
             )}
             <div className="flex items-center gap-3 text-sm">

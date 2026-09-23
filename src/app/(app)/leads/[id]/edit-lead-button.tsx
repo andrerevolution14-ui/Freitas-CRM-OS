@@ -25,6 +25,7 @@ interface EditLeadButtonProps {
     address: string
     source?: string | null
     estimatedValue?: number | null
+    provisionalProfit?: number | null
     urgency?: string | null
     status: string
   }
@@ -42,6 +43,7 @@ export function EditLeadButton({ lead }: EditLeadButtonProps) {
     address: lead.address,
     source: lead.source || 'Meta Ads',
     estimatedValue: lead.estimatedValue ? String(lead.estimatedValue) : '',
+    provisionalProfit: lead.provisionalProfit ? String(lead.provisionalProfit) : '',
     urgency: lead.urgency || 'Sem pressa',
     status: lead.status,
   })
@@ -54,6 +56,7 @@ export function EditLeadButton({ lead }: EditLeadButtonProps) {
       address: lead.address,
       source: lead.source || 'Meta Ads',
       estimatedValue: lead.estimatedValue ? String(lead.estimatedValue) : '',
+      provisionalProfit: lead.provisionalProfit ? String(lead.provisionalProfit) : '',
       urgency: lead.urgency || 'Sem pressa',
       status: lead.status,
     })
@@ -76,6 +79,7 @@ export function EditLeadButton({ lead }: EditLeadButtonProps) {
           address: form.address.trim(),
           source: form.source,
           estimatedValue: form.estimatedValue ? parseFloat(form.estimatedValue) : null,
+          provisionalProfit: form.provisionalProfit ? parseFloat(form.provisionalProfit) : null,
           urgency: form.urgency,
           status: form.status,
         })
@@ -113,6 +117,7 @@ export function EditLeadButton({ lead }: EditLeadButtonProps) {
             { label: 'Email', key: 'email', type: 'email', placeholder: 'sofia@exemplo.pt', required: false },
             { label: 'Morada da Obra *', key: 'address', type: 'text', placeholder: 'Rua Principal, 45, Porto', required: true },
             { label: 'Valor Estimado do Negócio (€)', key: 'estimatedValue', type: 'number', placeholder: '45000', required: false },
+            { label: 'Lucro Provisório (€) (Previsão Partilha)', key: 'provisionalProfit', type: 'number', placeholder: 'Ex: 4000', required: false },
           ].map((field) => (
             <div key={field.key}>
               <label className="block text-xs font-semibold text-slate-700 mb-1">{field.label}</label>

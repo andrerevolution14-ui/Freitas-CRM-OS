@@ -91,6 +91,10 @@ type Lead = {
   status: LeadStatus
   urgency?: string | null
   estimatedValue: number | null
+  provisionalProfit?: number | null
+  andrePaid?: boolean
+  jorgePaid?: boolean
+  profitShareSettled?: boolean
   createdAt: Date
   project: { id: string } | null
   notes?: NoteItem[]
@@ -119,6 +123,7 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
     address: '',
     source: 'Meta Ads',
     estimatedValue: '',
+    provisionalProfit: '',
     urgency: 'Sem pressa',
   })
   const [convertForm, setConvertForm] = useState({
@@ -145,6 +150,7 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
     address: '',
     source: 'Meta Ads',
     estimatedValue: '',
+    provisionalProfit: '',
     urgency: 'Sem pressa',
     status: 'NOVA_LEAD',
   })
@@ -159,6 +165,7 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
       address: lead.address,
       source: lead.source || 'Meta Ads',
       estimatedValue: lead.estimatedValue ? String(lead.estimatedValue) : '',
+      provisionalProfit: lead.provisionalProfit ? String(lead.provisionalProfit) : '',
       urgency: lead.urgency || 'Sem pressa',
       status: lead.status,
     })
@@ -181,6 +188,7 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
           address: editForm.address.trim(),
           source: editForm.source,
           estimatedValue: editForm.estimatedValue ? parseFloat(editForm.estimatedValue) : null,
+          provisionalProfit: editForm.provisionalProfit ? parseFloat(editForm.provisionalProfit) : null,
           urgency: editForm.urgency,
           status: editForm.status,
         })
@@ -295,6 +303,7 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
         address: form.address,
         source: form.source,
         estimatedValue: form.estimatedValue ? parseFloat(form.estimatedValue) : undefined,
+        provisionalProfit: form.provisionalProfit ? parseFloat(form.provisionalProfit) : undefined,
         urgency: form.urgency,
       })
       setLeads((prev) => [
@@ -308,6 +317,7 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
         address: '',
         source: 'Meta Ads',
         estimatedValue: '',
+        provisionalProfit: '',
         urgency: 'Sem pressa',
       })
       setShowForm(false)
@@ -670,6 +680,18 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
                           </span>
                         </div>
 
+                        {/* Provisional Profit and 40/60 Split Preview */}
+                        {lead.provisionalProfit != null && (
+                          <div className="flex items-center justify-between text-[10.5px] mt-1 pt-1 border-t border-slate-100/70">
+                            <span className="font-semibold text-emerald-700">
+                              Lucro: {formatCurrency(lead.provisionalProfit)}
+                            </span>
+                            <span className="text-[9.5px] text-slate-500 font-medium">
+                              A: {formatCurrency(lead.provisionalProfit * 0.4)} | J: {formatCurrency(lead.provisionalProfit * 0.6)}
+                            </span>
+                          </div>
+                        )}
+
                         {/* Quick action buttons on card footer */}
                         <div className="flex items-center justify-between mt-2 pt-1 border-t border-slate-100">
                           <div className="flex items-center gap-1">
@@ -769,6 +791,7 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
                   <th className="px-4 py-3">Urgência</th>
                   <th className="px-4 py-3">Origem</th>
                   <th className="px-4 py-3">Valor Estimado</th>
+                  <th className="px-4 py-3">Lucro Prev. (40/60)</th>
                   <th className="px-4 py-3">Estado</th>
                   <th className="px-4 py-3 text-right">Ações</th>
                 </tr>
@@ -796,6 +819,18 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
                       <td className="px-4 py-3 text-slate-500">{lead.source}</td>
                       <td className="px-4 py-3 font-bold text-slate-900">
                         {lead.estimatedValue ? formatCurrency(lead.estimatedValue) : '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        {lead.provisionalProfit ? (
+                          <div>
+                            <span className="font-bold text-emerald-700">{formatCurrency(lead.provisionalProfit)}</span>
+                            <div className="text-[10px] text-slate-500">
+                              A: {formatCurrency(lead.provisionalProfit * 0.4)} | J: {formatCurrency(lead.provisionalProfit * 0.6)}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-slate-400">—</span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <span className="inline-flex items-center px-2 py-0.5 rounded-[3px] text-[10.5px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
@@ -904,6 +939,7 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
             { label: 'Email', key: 'email', type: 'email', placeholder: 'sofia@exemplo.pt', required: false },
             { label: 'Morada da Obra *', key: 'address', type: 'text', placeholder: 'Rua Principal, 45, Porto', required: true },
             { label: 'Valor Estimado do Negócio (€)', key: 'estimatedValue', type: 'number', placeholder: '45000', required: false },
+            { label: 'Lucro Provisório (€) (Previsão Partilha)', key: 'provisionalProfit', type: 'number', placeholder: 'Ex: 4000', required: false },
           ].map((field) => (
             <div key={field.key}>
               <label className="block text-xs font-semibold text-slate-700 mb-1">{field.label}</label>
@@ -1226,6 +1262,7 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
             { label: 'Email', key: 'email', type: 'email', placeholder: 'sofia@exemplo.pt', required: false },
             { label: 'Morada da Obra *', key: 'address', type: 'text', placeholder: 'Rua Principal, 45, Porto', required: true },
             { label: 'Valor Estimado do Negócio (€)', key: 'estimatedValue', type: 'number', placeholder: '45000', required: false },
+            { label: 'Lucro Provisório (€) (Previsão Partilha)', key: 'provisionalProfit', type: 'number', placeholder: 'Ex: 4000', required: false },
           ].map((field) => (
             <div key={field.key}>
               <label className="block text-xs font-semibold text-slate-700 mb-1">{field.label}</label>

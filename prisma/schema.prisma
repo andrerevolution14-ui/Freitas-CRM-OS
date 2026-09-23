@@ -28,19 +28,23 @@ model User {
 }
 
 model Lead {
-  id             String   @id @default(uuid())
-  clientName     String
-  phone          String
-  email          String?
-  address        String
-  source         String   @default("Meta Ads")
-  status         String   @default("NOVA_LEAD")
-  urgency        String?  @default("Sem pressa")
-  estimatedValue Float?
-  notes          Note[]
-  project        Project?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                 String   @id @default(uuid())
+  clientName         String
+  phone              String
+  email              String?
+  address            String
+  source             String   @default("Meta Ads")
+  status             String   @default("NOVA_LEAD")
+  urgency            String?  @default("Sem pressa")
+  estimatedValue     Float?
+  provisionalProfit  Float?
+  andrePaid          Boolean  @default(false)
+  jorgePaid          Boolean  @default(false)
+  profitShareSettled Boolean  @default(false)
+  notes              Note[]
+  project            Project?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   // Audit
   createdById String?
@@ -48,17 +52,22 @@ model Lead {
 }
 
 model Project {
-  id            String    @id @default(uuid())
-  leadId        String?   @unique
-  lead          Lead?     @relation(fields: [leadId], references: [id])
-  title         String
-  clientName    String
-  clientNIF     String?
-  address       String
-  contractValue Float
-  startDate     DateTime?
-  endDate       DateTime?
-  status        String    @default("EM_PLANEAMENTO")
+  id                 String    @id @default(uuid())
+  leadId             String?   @unique
+  lead               Lead?     @relation(fields: [leadId], references: [id])
+  title              String
+  clientName         String
+  clientNIF          String?
+  address            String
+  contractValue      Float
+  provisionalProfit  Float?
+  andrePaid          Boolean   @default(false)
+  jorgePaid          Boolean   @default(false)
+  profitShareSettled Boolean   @default(false)
+  profitShareNotes   String?
+  startDate          DateTime?
+  endDate            DateTime?
+  status             String    @default("EM_PLANEAMENTO")
 
   expenses       Expense[]
   clientTranches ClientTranche[]

@@ -46,6 +46,7 @@ export async function createLead(data: {
   address: string
   source?: string
   estimatedValue?: number
+  provisionalProfit?: number
   status?: string
   urgency?: string
 }) {
@@ -80,6 +81,10 @@ export async function updateLead(
     address: string
     source: string
     estimatedValue: number | null
+    provisionalProfit: number | null
+    andrePaid: boolean
+    jorgePaid: boolean
+    profitShareSettled: boolean
     status: string
     urgency: string
   }>
@@ -98,8 +103,27 @@ export async function updateLead(
         updatePayload.estimatedValue = isNaN(parsed) ? null : parsed
       }
     }
+    if ('provisionalProfit' in updatePayload) {
+      if (
+        updatePayload.provisionalProfit === '' ||
+        updatePayload.provisionalProfit === null ||
+        updatePayload.provisionalProfit === undefined
+      ) {
+        updatePayload.provisionalProfit = null
+      } else {
+        const parsed = Number(updatePayload.provisionalProfit)
+        updatePayload.provisionalProfit = isNaN(parsed) ? null : parsed
+      }
+    }
     if ('email' in updatePayload && !updatePayload.email) {
       updatePayload.email = null
+    }
+
+    if (('andrePaid' in updatePayload || 'jorgePaid' in updatePayload) && !('profitShareSettled' in updatePayload)) {
+      const current = await prisma.lead.findUnique({ where: { id }, select: { andrePaid: true, jorgePaid: true } })
+      const nextAndre = 'andrePaid' in updatePayload ? !!updatePayload.andrePaid : current?.andrePaid
+      const nextJorge = 'jorgePaid' in updatePayload ? !!updatePayload.jorgePaid : current?.jorgePaid
+      updatePayload.profitShareSettled = !!(nextAndre && nextJorge)
     }
 
     const lead = await prisma.lead.update({
@@ -169,6 +193,38 @@ function sanitizeDate(date?: Date | string | null): Date | undefined {
   return d
 }
 
+export async function toggleLeadProfitShare(
+  id: string,
+  data: {
+    andrePaid?: boolean
+    jorgePaid?: boolean
+    profitShareSettled?: boolean
+  }
+) {
+  const current = await prisma.lead.findUnique({ where: { id } })
+  if (!current) throw new Error('Lead não encontrada')
+
+  const nextAndre = data.andrePaid !== undefined ? data.andrePaid : current.andrePaid
+  const nextJorge = data.jorgePaid !== undefined ? data.jorgePaid : current.jorgePaid
+  const nextSettled =
+    data.profitShareSettled !== undefined
+      ? data.profitShareSettled
+      : nextAndre && nextJorge
+
+  const updated = await prisma.lead.update({
+    where: { id },
+    data: {
+      andrePaid: nextAndre,
+      jorgePaid: nextJorge,
+      profitShareSettled: nextSettled,
+    },
+  })
+  revalidatePath('/leads')
+  revalidatePath(`/leads/${id}`)
+  revalidatePath('/dashboard')
+  return updated
+}
+
 export async function convertLeadToProject(
   leadId: string,
   projectData: {
@@ -190,6 +246,7 @@ export async function convertLeadToProject(
       clientNIF: projectData.clientNIF,
       address: lead.address,
       contractValue: projectData.contractValue,
+      provisionalProfit: lead.provisionalProfit,
       startDate: sanitizeDate(projectData.startDate),
       status: 'EM_PLANEAMENTO',
       createdById,

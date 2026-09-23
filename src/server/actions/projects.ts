@@ -46,6 +46,7 @@ export async function createProject(data: {
   clientNIF?: string
   address: string
   contractValue: number
+  provisionalProfit?: number
   startDate?: Date | string
   endDate?: Date | string
   status?: ProjectStatus
@@ -58,6 +59,7 @@ export async function createProject(data: {
     },
   })
   revalidatePath('/obras')
+  revalidatePath('/dashboard')
   return project
 }
 
@@ -67,18 +69,78 @@ export async function updateProject(id: string, data: Partial<{
   clientNIF: string
   address: string
   contractValue: number
+  provisionalProfit: number | null
+  andrePaid: boolean
+  jorgePaid: boolean
+  profitShareSettled: boolean
+  profitShareNotes: string | null
   startDate: Date | string
   endDate: Date | string
   status: ProjectStatus
 }>) {
-  const updateData = { ...data }
+  const updateData: any = { ...data }
   if ('startDate' in updateData) updateData.startDate = sanitizeDate(updateData.startDate)
   if ('endDate' in updateData) updateData.endDate = sanitizeDate(updateData.endDate)
+
+  if ('provisionalProfit' in updateData) {
+    if (
+      updateData.provisionalProfit === '' ||
+      updateData.provisionalProfit === null ||
+      updateData.provisionalProfit === undefined
+    ) {
+      updateData.provisionalProfit = null
+    } else {
+      const parsed = Number(updateData.provisionalProfit)
+      updateData.provisionalProfit = isNaN(parsed) ? null : parsed
+    }
+  }
+
+  if (('andrePaid' in updateData || 'jorgePaid' in updateData) && !('profitShareSettled' in updateData)) {
+    const current = await prisma.project.findUnique({ where: { id }, select: { andrePaid: true, jorgePaid: true } })
+    const nextAndre = 'andrePaid' in updateData ? !!updateData.andrePaid : current?.andrePaid
+    const nextJorge = 'jorgePaid' in updateData ? !!updateData.jorgePaid : current?.jorgePaid
+    updateData.profitShareSettled = !!(nextAndre && nextJorge)
+  }
 
   const project = await prisma.project.update({ where: { id }, data: updateData as any })
   revalidatePath('/obras')
   revalidatePath(`/obras/${id}`)
+  revalidatePath('/dashboard')
   return project
+}
+
+export async function toggleProjectProfitShare(
+  id: string,
+  data: {
+    andrePaid?: boolean
+    jorgePaid?: boolean
+    profitShareSettled?: boolean
+    profitShareNotes?: string
+  }
+) {
+  const current = await prisma.project.findUnique({ where: { id } })
+  if (!current) throw new Error('Obra não encontrada')
+
+  const nextAndre = data.andrePaid !== undefined ? data.andrePaid : current.andrePaid
+  const nextJorge = data.jorgePaid !== undefined ? data.jorgePaid : current.jorgePaid
+  const nextSettled =
+    data.profitShareSettled !== undefined
+      ? data.profitShareSettled
+      : nextAndre && nextJorge
+
+  const updated = await prisma.project.update({
+    where: { id },
+    data: {
+      andrePaid: nextAndre,
+      jorgePaid: nextJorge,
+      profitShareSettled: nextSettled,
+      profitShareNotes: data.profitShareNotes !== undefined ? data.profitShareNotes : current.profitShareNotes,
+    },
+  })
+  revalidatePath('/obras')
+  revalidatePath(`/obras/${id}`)
+  revalidatePath('/dashboard')
+  return updated
 }
 
 export async function deleteProject(id: string) {
@@ -239,8 +301,44 @@ export async function getDashboardStats() {
 
   const totalRevenue = projects.reduce((s, p) => s + p.contractValue, 0)
   const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0)
-  const totalProfit = totalRevenue - totalExpenses
-  const avgMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0
+
+  // Lucro Bruto: apenas contratos fechados e já terminados (status = CONCLUIDA)
+  // e apenas o que foi efetivamente recebido (tranches pagas)
+  const completedProjects = projects.filter((p) => p.status === 'CONCLUIDA')
+  const completedReceivedRevenue = completedProjects
+    .flatMap((p) => p.clientTranches)
+    .filter((t) => t.status === 'PAGO' || t.paidDate != null)
+    .reduce((s, t) => s + t.amount, 0)
+
+  const completedExpenses = completedProjects
+    .flatMap((p) => p.expenses)
+    .reduce((s, e) => s + e.amount, 0)
+
+  const completedProfit = completedReceivedRevenue - completedExpenses
+  const totalProfit = completedProfit
+  const avgMargin = completedReceivedRevenue > 0 ? (completedProfit / completedReceivedRevenue) * 100 : 0
+
+  // Divisão 40% André / 60% Jorge
+  const andreCompletedShare = completedProfit > 0 ? completedProfit * 0.4 : 0
+  const jorgeCompletedShare = completedProfit > 0 ? completedProfit * 0.6 : 0
+
+  const completedAndreSettled = completedProjects
+    .filter((p) => p.andrePaid)
+    .reduce((s, p) => {
+      const rec = p.clientTranches.filter((t) => t.status === 'PAGO' || t.paidDate != null).reduce((acc, t) => acc + t.amount, 0)
+      const exp = p.expenses.reduce((acc, e) => acc + e.amount, 0)
+      const pr = rec - exp
+      return s + (pr > 0 ? pr * 0.4 : 0)
+    }, 0)
+
+  const completedJorgeSettled = completedProjects
+    .filter((p) => p.jorgePaid)
+    .reduce((s, p) => {
+      const rec = p.clientTranches.filter((t) => t.status === 'PAGO' || t.paidDate != null).reduce((acc, t) => acc + t.amount, 0)
+      const exp = p.expenses.reduce((acc, e) => acc + e.amount, 0)
+      const pr = rec - exp
+      return s + (pr > 0 ? pr * 0.6 : 0)
+    }, 0)
 
   const pendingReceivables = clientTranches
     .filter((t) => t.status !== 'PAGO')
@@ -274,6 +372,13 @@ export async function getDashboardStats() {
     totalExpenses,
     totalProfit,
     avgMargin,
+    completedProjectsCount: completedProjects.length,
+    completedReceivedRevenue,
+    completedExpenses,
+    andreShare: andreCompletedShare,
+    jorgeShare: jorgeCompletedShare,
+    andreSettled: completedAndreSettled,
+    jorgeSettled: completedJorgeSettled,
     pendingReceivables,
     pendingPayables,
     paidReceivables,
@@ -290,6 +395,11 @@ export async function getDashboardStats() {
       clientName: p.clientName,
       address: p.address,
       contractValue: p.contractValue,
+      provisionalProfit: p.provisionalProfit,
+      andrePaid: p.andrePaid,
+      jorgePaid: p.jorgePaid,
+      profitShareSettled: p.profitShareSettled,
+      profitShareNotes: p.profitShareNotes,
       totalExpenses: p.expenses.reduce((s, e) => s + e.amount, 0),
       status: p.status,
       startDate: p.startDate,

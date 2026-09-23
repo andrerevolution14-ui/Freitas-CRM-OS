@@ -6,11 +6,13 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft, TrendingUp, TrendingDown, Wallet, FileText, StickyNote,
   Plus, Trash2, X, Loader2, Check, Clock, AlertTriangle, Upload,
-  MapPin, Calendar, User, Receipt, Star, Euro, FileUp, FolderOpen
+  MapPin, Calendar, User, Receipt, Star, Euro, FileUp, FolderOpen,
+  CheckCircle2, Pencil, Users, ShieldCheck
 } from 'lucide-react'
 import {
   createExpense, deleteExpense, createClientTranche, updateTrancheStatus,
-  deleteClientTranche, createDocument, deleteDocument, updateProject, deleteProject
+  deleteClientTranche, createDocument, deleteDocument, updateProject, deleteProject,
+  toggleProjectProfitShare
 } from '@/server/actions/projects'
 import { createSubcontractorPayment, updateSubPaymentStatus } from '@/server/actions/subcontractors'
 import { createNote, deleteNote } from '@/server/actions/notes'
@@ -86,12 +88,68 @@ export function ObraDetailClient({ project: initialProject, subcontractors }: { 
 
   // Computed financials
   const totalExpenses = project.expenses.reduce((s, e) => s + e.amount, 0)
-  const profit = project.contractValue - totalExpenses
+  const received = project.clientTranches.filter(t => t.status === 'PAGO' || (t as any).paidDate != null).reduce((s, t) => s + t.amount, 0)
+  const subPaid = project.subPayments.filter(p => p.status === 'PAGO' || (p as any).paidDate != null).reduce((s, p) => s + p.amount, 0)
+  const receivedProfit = received - totalExpenses
+  const contractProfit = project.contractValue - totalExpenses
+
+  const isConcluida = project.status === 'CONCLUIDA'
+  const profitForShare = isConcluida
+    ? receivedProfit
+    : (project.provisionalProfit != null ? project.provisionalProfit : contractProfit)
+
   const margin = calcMargin(project.contractValue, totalExpenses)
   const marginColor = getMarginColor(margin)
   const marginBg = getMarginBg(margin)
-  const received = project.clientTranches.filter(t => t.status === 'PAGO').reduce((s, t) => s + t.amount, 0)
-  const subPaid = project.subPayments.filter(p => p.status === 'PAGO').reduce((s, p) => s + p.amount, 0)
+
+  const andreShare = profitForShare > 0 ? profitForShare * 0.4 : 0
+  const jorgeShare = profitForShare > 0 ? profitForShare * 0.6 : 0
+
+  const [editingProvisionalProfit, setEditingProvisionalProfit] = useState(false)
+  const [provisionalProfitInput, setProvisionalProfitInput] = useState(
+    project.provisionalProfit != null ? String(project.provisionalProfit) : ''
+  )
+
+  async function handleToggleProfitShare(field: 'andrePaid' | 'jorgePaid' | 'profitShareSettled', val?: boolean) {
+    startTransition(async () => {
+      try {
+        const payload: any = {}
+        if (field === 'andrePaid') payload.andrePaid = val !== undefined ? val : !project.andrePaid
+        if (field === 'jorgePaid') payload.jorgePaid = val !== undefined ? val : !project.jorgePaid
+        if (field === 'profitShareSettled') {
+          const next = val !== undefined ? val : !project.profitShareSettled
+          payload.profitShareSettled = next
+          payload.andrePaid = next
+          payload.jorgePaid = next
+        }
+        const updated = await toggleProjectProfitShare(project.id, payload)
+        setProject(p => ({
+          ...p,
+          andrePaid: updated.andrePaid,
+          jorgePaid: updated.jorgePaid,
+          profitShareSettled: updated.profitShareSettled,
+        }))
+      } catch (err: any) {
+        console.error('Error toggling profit share:', err)
+        alert(err?.message || 'Erro ao atualizar partilha')
+      }
+    })
+  }
+
+  async function handleSaveProvisionalProfit(e: React.FormEvent) {
+    e.preventDefault()
+    startTransition(async () => {
+      try {
+        const val = provisionalProfitInput.trim() === '' ? null : parseFloat(provisionalProfitInput)
+        const updated = await updateProject(project.id, { provisionalProfit: val } as any)
+        setProject(p => ({ ...p, provisionalProfit: updated.provisionalProfit }))
+        setEditingProvisionalProfit(false)
+      } catch (err: any) {
+        console.error('Error saving provisional profit:', err)
+        alert(err?.message || 'Erro ao guardar lucro provisório')
+      }
+    })
+  }
 
   // Forms
   const [expenseForm, setExpenseForm] = useState({ description: '', amount: '', category: 'MATERIAL' as ExpenseCategory, date: '' })
@@ -292,6 +350,206 @@ export function ObraDetailClient({ project: initialProject, subcontractors }: { 
     })
   }
 
+  function renderProfitSplitCard() {
+    return (
+      <div className="bg-white border border-slate-200 rounded-[4px] p-5 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 rounded-[3px] bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-700 font-bold text-xs">
+                %
+              </span>
+              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                Divisão de Lucro da Obra (40% André / 60% Jorge)
+              </h3>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              {isConcluida
+                ? `Obra concluída: cálculo baseado no lucro real apurado das tranches recebidas (${formatCurrency(receivedProfit)}).`
+                : project.provisionalProfit != null
+                ? `Cálculo baseado no lucro provisório estipulado (${formatCurrency(project.provisionalProfit)}).`
+                : `Obra em curso: a calcular com base na margem contratual atual (${formatCurrency(contractProfit)}).`}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <span
+              className={cn(
+                'text-[10.5px] font-bold px-2.5 py-1 rounded-[3px] border uppercase tracking-wider',
+                project.profitShareSettled
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                  : 'bg-amber-50 text-amber-700 border-amber-300'
+              )}
+            >
+              {project.profitShareSettled ? '✓ Partilha Liquidada' : '⏳ Partilha Pendente'}
+            </span>
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => handleToggleProfitShare('profitShareSettled')}
+              className={cn(
+                'px-3 py-1 rounded-[3px] text-xs font-semibold border transition-all active:scale-95 cursor-pointer disabled:opacity-50',
+                project.profitShareSettled
+                  ? 'bg-slate-50 text-slate-600 border-slate-300 hover:bg-slate-100'
+                  : 'bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700'
+              )}
+            >
+              {project.profitShareSettled ? 'Marcar Pendente' : 'Liquidar Partilha'}
+            </button>
+          </div>
+        </div>
+
+        {/* Lucro Base de Referência & Edição de Lucro Provisório */}
+        <div className="p-3 bg-slate-50 border border-slate-200 rounded-[4px] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs">
+          <div>
+            <span className="text-slate-500">Valor de Lucro Aplicado: </span>
+            <span className={cn('text-sm font-bold ml-1', profitForShare >= 0 ? 'text-emerald-700' : 'text-red-600')}>
+              {formatCurrency(profitForShare)}
+            </span>
+            <span className="text-slate-400 ml-2">
+              ({isConcluida ? 'Concluída & Recebida' : project.provisionalProfit != null ? 'Provisório Definido' : 'Provisório Contratual'})
+            </span>
+          </div>
+
+          <div>
+            {!editingProvisionalProfit ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setProvisionalProfitInput(project.provisionalProfit != null ? String(project.provisionalProfit) : '')
+                  setEditingProvisionalProfit(true)
+                }}
+                className="flex items-center gap-1.5 px-2.5 py-1 text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-[3px] font-semibold text-xs transition-colors cursor-pointer"
+              >
+                <Pencil className="w-3 h-3 text-slate-500" />
+                <span>{project.provisionalProfit != null ? 'Ajustar Lucro Provisório' : 'Definir Lucro Provisório'}</span>
+              </button>
+            ) : (
+              <form onSubmit={handleSaveProvisionalProfit} className="flex items-center gap-2">
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="Ex: 3500"
+                  value={provisionalProfitInput}
+                  onChange={(e) => setProvisionalProfitInput(e.target.value)}
+                  className="w-28 px-2 py-1 bg-white border border-blue-500 rounded-[3px] text-xs font-medium focus:outline-none"
+                  autoFocus
+                />
+                <button
+                  type="submit"
+                  disabled={isPending}
+                  className="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-[3px] text-xs font-semibold cursor-pointer"
+                >
+                  OK
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditingProvisionalProfit(false)}
+                  className="px-2 py-1 text-slate-500 hover:text-slate-800 text-xs cursor-pointer"
+                >
+                  ✕
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+
+        {/* As 2 quotas dos sócios */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* André Queirós - 40% */}
+          <div className="p-4 rounded-[4px] bg-slate-50/70 border border-slate-200 flex flex-col justify-between">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
+                  AQ
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900">André Queirós</h4>
+                  <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">40% do Lucro</span>
+                </div>
+              </div>
+
+              <span
+                className={cn(
+                  'text-[10px] font-bold px-2 py-0.5 rounded-[3px] border uppercase tracking-wider',
+                  project.andrePaid ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+                )}
+              >
+                {project.andrePaid ? '✓ Liquidado' : '⏳ Pendente'}
+              </span>
+            </div>
+
+            <div className="space-y-3 pt-2 border-t border-slate-200">
+              <div className="flex justify-between items-baseline text-xs">
+                <span className="text-slate-500">Valor a Receber:</span>
+                <span className="text-base font-bold text-slate-900">{formatCurrency(andreShare)}</span>
+              </div>
+
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() => handleToggleProfitShare('andrePaid')}
+                className={cn(
+                  'w-full py-1.5 px-3 rounded-[3px] text-xs font-semibold border flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer disabled:opacity-50',
+                  project.andrePaid
+                    ? 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'
+                    : 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700'
+                )}
+              >
+                {project.andrePaid ? 'Desmarcar André' : 'Assinalar Pago a André'}
+              </button>
+            </div>
+          </div>
+
+          {/* Jorge Freitas - 60% */}
+          <div className="p-4 rounded-[4px] bg-slate-50/70 border border-slate-200 flex flex-col justify-between">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-purple-600 text-white font-bold text-xs flex items-center justify-center shadow-xs">
+                  JF
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-900">Jorge Freitas</h4>
+                  <span className="text-[10px] font-bold text-purple-600 uppercase tracking-wider">60% do Lucro</span>
+                </div>
+              </div>
+
+              <span
+                className={cn(
+                  'text-[10px] font-bold px-2 py-0.5 rounded-[3px] border uppercase tracking-wider',
+                  project.jorgePaid ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+                )}
+              >
+                {project.jorgePaid ? '✓ Liquidado' : '⏳ Pendente'}
+              </span>
+            </div>
+
+            <div className="space-y-3 pt-2 border-t border-slate-200">
+              <div className="flex justify-between items-baseline text-xs">
+                <span className="text-slate-500">Valor a Receber:</span>
+                <span className="text-base font-bold text-slate-900">{formatCurrency(jorgeShare)}</span>
+              </div>
+
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() => handleToggleProfitShare('jorgePaid')}
+                className={cn(
+                  'w-full py-1.5 px-3 rounded-[3px] text-xs font-semibold border flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer disabled:opacity-50',
+                  project.jorgePaid
+                    ? 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'
+                    : 'bg-purple-600 text-white border-purple-600 hover:bg-purple-700'
+                )}
+              >
+                {project.jorgePaid ? 'Desmarcar Jorge' : 'Assinalar Pago a Jorge'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const expensesByCategory = EXPENSE_CATEGORIES.map(cat => ({
     ...cat,
     total: project.expenses.filter(e => e.category === cat.value).reduce((s, e) => s + e.amount, 0),
@@ -340,9 +598,14 @@ export function ObraDetailClient({ project: initialProject, subcontractors }: { 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           { label: 'VALOR DO CONTRATO', value: formatCurrency(project.contractValue), color: 'text-blue-600', icon: Wallet },
+          { label: 'RECEBIDO EFETIVO', value: formatCurrency(received), color: 'text-emerald-600', icon: Wallet },
           { label: 'CUSTOS TOTAIS', value: formatCurrency(totalExpenses), color: 'text-red-600', icon: TrendingDown },
-          { label: 'LUCRO BRUTO', value: formatCurrency(profit), color: profit >= 0 ? 'text-emerald-600' : 'text-red-600', icon: TrendingUp },
-          { label: `MARGEM REAL (${margin.toFixed(1)}%)`, value: margin.toFixed(1) + '%', color: marginColor, icon: TrendingUp },
+          {
+            label: isConcluida ? 'LUCRO BRUTO (RECEBIDO)' : 'LUCRO ATUAL (RECEBIDO)',
+            value: formatCurrency(receivedProfit),
+            color: receivedProfit >= 0 ? 'text-emerald-600' : 'text-red-600',
+            icon: TrendingUp,
+          },
         ].map(kpi => (
           <div key={kpi.label} className="bg-white border border-slate-200 rounded-[4px] p-4 shadow-sm">
             <p className="text-[10.5px] font-bold uppercase tracking-wider text-slate-500 mb-1">{kpi.label}</p>
@@ -419,6 +682,11 @@ export function ObraDetailClient({ project: initialProject, subcontractors }: { 
               </div>
             </div>
           </Section>
+
+          {/* Section: Divisão de Lucro (40% André / 60% Jorge) */}
+          <div className="md:col-span-2">
+            {renderProfitSplitCard()}
+          </div>
 
           {/* Section: Documentos da Obra */}
           <div className="md:col-span-2">
@@ -545,11 +813,14 @@ export function ObraDetailClient({ project: initialProject, subcontractors }: { 
               <p className="text-2xl font-bold text-red-600">{formatCurrency(totalExpenses)}</p>
             </div>
             <div className={cn('bg-white border border-slate-200 rounded-[4px] p-5 text-center shadow-sm', marginBg)}>
-              <p className="text-xs text-slate-500 mb-2 font-semibold uppercase tracking-wider">Lucro Bruto</p>
-              <p className={cn('text-2xl font-bold', marginColor)}>{formatCurrency(profit)}</p>
+              <p className="text-xs text-slate-500 mb-2 font-semibold uppercase tracking-wider">{isConcluida ? 'Lucro Bruto (Recebido)' : 'Lucro Real Atual'}</p>
+              <p className={cn('text-2xl font-bold', marginColor)}>{formatCurrency(receivedProfit)}</p>
               <p className={cn('text-sm mt-1 font-semibold', marginColor)}>{margin.toFixed(1)}% margem</p>
             </div>
           </div>
+
+          {/* Divisão de Lucro (40% André / 60% Jorge) */}
+          {renderProfitSplitCard()}
 
           {/* Expense breakdown by category */}
           <Section title="Custos por Categoria">

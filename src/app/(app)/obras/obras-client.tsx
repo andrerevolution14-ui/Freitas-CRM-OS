@@ -50,7 +50,7 @@ export function ObrasClient({ projects: initial }: { projects: Project[] }) {
   const [isPending, startTransition] = useTransition()
   const [form, setForm] = useState({
     title: '', clientName: '', clientNIF: '', address: '',
-    contractValue: '', startDate: '', endDate: '', status: 'EM_PLANEAMENTO' as ProjectStatus,
+    contractValue: '', provisionalProfit: '', startDate: '', endDate: '', status: 'EM_PLANEAMENTO' as ProjectStatus,
   })
 
   async function handleUploadProForma(e: React.FormEvent) {
@@ -101,6 +101,7 @@ export function ObrasClient({ projects: initial }: { projects: Project[] }) {
           clientNIF: form.clientNIF?.trim() || undefined,
           address: form.address.trim(),
           contractValue: parseFloat(form.contractValue) || 0,
+          provisionalProfit: form.provisionalProfit ? parseFloat(form.provisionalProfit) : undefined,
           startDate: form.startDate ? form.startDate : undefined,
           endDate: form.endDate ? form.endDate : undefined,
           status: form.status,
@@ -109,7 +110,7 @@ export function ObrasClient({ projects: initial }: { projects: Project[] }) {
         setShowForm(false)
         setForm({
           title: '', clientName: '', clientNIF: '', address: '',
-          contractValue: '', startDate: '', endDate: '', status: 'EM_PLANEAMENTO' as ProjectStatus,
+          contractValue: '', provisionalProfit: '', startDate: '', endDate: '', status: 'EM_PLANEAMENTO' as ProjectStatus,
         })
         router.push(`/obras/${project.id}`)
       } catch (err: any) {
@@ -221,11 +222,16 @@ export function ObrasClient({ projects: initial }: { projects: Project[] }) {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {filtered.map(project => {
           const totalExpenses = project.expenses.reduce((s, e) => s + e.amount, 0)
-          const profit = project.contractValue - totalExpenses
+          const received = project.clientTranches.filter(t => t.status === 'PAGO' || (t as any).paidDate != null).reduce((s, t) => s + t.amount, 0)
+          const isConcluida = project.status === 'CONCLUIDA'
+          const realReceivedProfit = received - totalExpenses
+          const contractProfit = project.contractValue - totalExpenses
+          const displayProfit = isConcluida ? realReceivedProfit : ((project as any).provisionalProfit ?? contractProfit)
           const margin = calcMargin(project.contractValue, totalExpenses)
           const marginColor = getMarginColor(margin)
-          const received = project.clientTranches.filter(t => t.status === 'PAGO').reduce((s, t) => s + t.amount, 0)
           const pctReceived = project.contractValue > 0 ? (received / project.contractValue) * 100 : 0
+          const andreShare = displayProfit > 0 ? displayProfit * 0.4 : 0
+          const jorgeShare = displayProfit > 0 ? displayProfit * 0.6 : 0
 
           return (
             <div
@@ -285,11 +291,32 @@ export function ObrasClient({ projects: initial }: { projects: Project[] }) {
                   </div>
                   <div className="flex justify-between text-xs pt-1.5 border-t border-slate-200">
                     <span className="text-slate-500 flex items-center gap-1">
-                      <TrendingUp className="w-3 h-3 text-emerald-600" /> Lucro
+                      <TrendingUp className="w-3 h-3 text-emerald-600" />
+                      {isConcluida ? 'Lucro Real (Recebido)' : (project as any).provisionalProfit != null ? 'Lucro Provisório' : 'Lucro Previsto'}
                     </span>
-                    <span className={cn('font-bold', profit >= 0 ? 'text-emerald-700' : 'text-red-600')}>
-                      {formatCurrency(profit)} <span className={cn('text-[11px]', marginColor)}>({margin.toFixed(1)}%)</span>
+                    <span className={cn('font-bold', displayProfit >= 0 ? 'text-emerald-700' : 'text-red-600')}>
+                      {formatCurrency(displayProfit)}
                     </span>
+                  </div>
+
+                  {/* Divisão de Lucro 40/60 */}
+                  <div className="flex items-center justify-between text-[11px] pt-1.5 border-t border-slate-200/70 text-slate-600">
+                    <span className="font-medium text-slate-500">Partilha 40/60:</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-blue-700 font-semibold">A: {formatCurrency(andreShare)}</span>
+                      <span className="text-slate-300">|</span>
+                      <span className="text-purple-700 font-semibold">J: {formatCurrency(jorgeShare)}</span>
+                      <span
+                        className={cn(
+                          'text-[9px] font-bold px-1.5 py-0.5 rounded-[2px] border uppercase tracking-wider ml-1',
+                          (project as any).profitShareSettled
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                            : 'bg-amber-50 text-amber-700 border-amber-300'
+                        )}
+                      >
+                        {(project as any).profitShareSettled ? 'Liquidada' : 'Pendente'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -351,6 +378,7 @@ export function ObrasClient({ projects: initial }: { projects: Project[] }) {
               { label: 'NIF do Cliente', key: 'clientNIF', type: 'text', placeholder: '123 456 789', col: 1 },
               { label: 'Morada Completa *', key: 'address', type: 'text', placeholder: 'Rua das Flores, 12, Porto', col: 2 },
               { label: 'Valor do Contrato (€) *', key: 'contractValue', type: 'number', placeholder: '50000', col: 1 },
+              { label: 'Lucro Provisório (€)', key: 'provisionalProfit', type: 'number', placeholder: 'Ex: 5000 (previsão partilha)', col: 1 },
               { label: 'Estado Inicial', key: 'status', type: 'select', placeholder: '', col: 1 },
               { label: 'Data de Início Prevista', key: 'startDate', type: 'date', placeholder: '', col: 1 },
               { label: 'Data de Conclusão Prevista', key: 'endDate', type: 'date', placeholder: '', col: 1 },
