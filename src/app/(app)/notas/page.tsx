@@ -13,6 +13,7 @@ export default async function NotasPage() {
       orderBy: { createdAt: 'desc' },
     }),
     prisma.lead.findMany({
+      where: { deletedAt: null },
       select: { id: true, clientName: true },
       orderBy: { createdAt: 'desc' },
     }),

@@ -52,10 +52,39 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <EditLeadButton lead={lead as any} />
-          <DeleteLeadButton leadId={lead.id} clientName={lead.clientName} />
+          {!lead.deletedAt && <EditLeadButton lead={lead as any} />}
+          <DeleteLeadButton
+            leadId={lead.id}
+            clientName={lead.clientName}
+            isDeleted={!!lead.deletedAt}
+          />
         </div>
       </div>
+
+      {lead.deletedAt && (
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-[4px] flex items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-bold text-rose-900">
+                Esta lead foi movida para o Lixo
+              </p>
+              <p className="text-xs text-rose-700 mt-0.5">
+                <strong>Motivo / Justificação:</strong>{' '}
+                <span className="font-semibold">{lead.deleteReason || 'Sem justificação'}</span>
+              </p>
+              <p className="text-[11px] text-rose-500 mt-0.5">
+                Eliminada a {formatDate(lead.deletedAt)}
+              </p>
+            </div>
+          </div>
+          <DeleteLeadButton
+            leadId={lead.id}
+            clientName={lead.clientName}
+            isDeleted={true}
+          />
+        </div>
+      )}
 
       {/* Widget de Divisão de Lucro Provisório */}
       <LeadProfitShareSection

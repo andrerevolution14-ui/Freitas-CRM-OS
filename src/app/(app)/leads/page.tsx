@@ -1,9 +1,12 @@
-import { getLeads } from '@/server/actions/leads'
+import { getLeads, getDeletedLeads } from '@/server/actions/leads'
 import { LeadsClient } from './leads-client'
 
 export const revalidate = 10
 
 export default async function LeadsPage() {
-  const leads = await getLeads()
-  return <LeadsClient leads={leads as any} />
+  const [leads, deletedLeads] = await Promise.all([
+    getLeads(),
+    getDeletedLeads(),
+  ])
+  return <LeadsClient leads={leads as any} initialDeletedLeads={deletedLeads as any} />
 }

@@ -12,7 +12,24 @@ async function getCurrentUserId(): Promise<string | undefined> {
 
 export async function getLeads() {
   return prisma.lead.findMany({
+    where: { deletedAt: null },
     orderBy: { createdAt: 'desc' },
+    include: {
+      project: true,
+      notes: {
+        orderBy: { createdAt: 'desc' },
+        include: { createdBy: { select: { id: true, name: true, color: true, image: true } } },
+      },
+      _count: { select: { notes: true } },
+      createdBy: { select: { id: true, name: true, color: true } },
+    },
+  })
+}
+
+export async function getDeletedLeads() {
+  return prisma.lead.findMany({
+    where: { deletedAt: { not: null } },
+    orderBy: { deletedAt: 'desc' },
     include: {
       project: true,
       notes: {
@@ -161,17 +178,58 @@ export async function updateLeadStatus(id: string, status: string) {
   }
 }
 
-export async function deleteLead(id: string) {
+export async function deleteLead(id: string, reason?: string) {
+  try {
+    const trimmedReason = reason?.trim() || 'Sem justificação especificada'
+    const lead = await prisma.lead.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+        deleteReason: trimmedReason,
+      },
+    })
+
+    revalidatePath('/leads')
+    revalidatePath('/dashboard')
+    revalidatePath(`/leads/${id}`)
+    return { success: true, lead }
+  } catch (error: any) {
+    console.error('Error soft-deleting lead:', error)
+    throw new Error(error?.message || 'Erro ao mover lead para o lixo')
+  }
+}
+
+export async function restoreLead(id: string) {
+  try {
+    const lead = await prisma.lead.update({
+      where: { id },
+      data: {
+        deletedAt: null,
+        deleteReason: null,
+      },
+    })
+
+    revalidatePath('/leads')
+    revalidatePath('/dashboard')
+    revalidatePath(`/leads/${id}`)
+    return { success: true, lead }
+  } catch (error: any) {
+    console.error('Error restoring lead:', error)
+    throw new Error(error?.message || 'Erro ao restaurar lead')
+  }
+}
+
+export async function permanentDeleteLead(id: string) {
   try {
     await prisma.$transaction(async (tx) => {
       // 1. Delete all notes attached to this lead
       await tx.note.deleteMany({ where: { leadId: id } })
-      // 2. Unlink any project referencing this lead so the Obra is not broken or blocking
+      // 2. Unlink any project referencing this lead
       await tx.project.updateMany({
         where: { leadId: id },
         data: { leadId: null },
       })
-      // 3. Delete the lead itself
+      // 3. Delete the lead permanently
       await tx.lead.delete({ where: { id } })
     })
 
@@ -179,8 +237,8 @@ export async function deleteLead(id: string) {
     revalidatePath('/dashboard')
     return { success: true }
   } catch (error: any) {
-    console.error('Error deleting lead:', error)
-    throw new Error(error?.message || 'Erro ao eliminar lead')
+    console.error('Error permanently deleting lead:', error)
+    throw new Error(error?.message || 'Erro ao eliminar lead permanentemente')
   }
 }
 

@@ -10,6 +10,7 @@ import {
   Calendar,
   ArrowRight,
   Trash2,
+  RotateCcw,
   List,
   Search,
   X,
@@ -22,6 +23,7 @@ import {
   SlidersHorizontal,
   CheckSquare,
   AlertCircle,
+  AlertTriangle,
   Briefcase,
   StickyNote,
   Edit3,
@@ -33,11 +35,14 @@ import {
   updateLead,
   updateLeadStatus,
   deleteLead,
+  restoreLead,
+  permanentDeleteLead,
   convertLeadToProject,
 } from '@/server/actions/leads'
 import { createNote, updateNote, deleteNote } from '@/server/actions/notes'
 import { formatCurrency, formatDate, getStatusLabel, getUrgencyBadge, cn } from '@/lib/utils'
 import { Modal } from '@/components/ui/modal'
+import { DeleteLeadModal } from '@/components/leads/delete-lead-modal'
 import { UserAvatar } from '@/components/ui/user-avatar'
 import type { LeadStatus } from '@prisma/client'
 
@@ -95,6 +100,8 @@ type Lead = {
   andrePaid?: boolean
   jorgePaid?: boolean
   profitShareSettled?: boolean
+  deletedAt?: Date | string | null
+  deleteReason?: string | null
   createdAt: Date
   project: { id: string } | null
   notes?: NoteItem[]
@@ -103,10 +110,18 @@ type Lead = {
 
 const SOURCES = ['Meta Ads', 'Google Ads', 'Instagram', 'Referência', 'Website', 'Outro']
 
-export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
+export function LeadsClient({
+  leads: initial,
+  initialDeletedLeads = [],
+}: {
+  leads: Lead[]
+  initialDeletedLeads?: Lead[]
+}) {
   const router = useRouter()
-  const [leads, setLeads] = useState(initial)
-  const [view, setView] = useState<'funil' | 'listagem' | 'mapa'>('funil')
+  const [leads, setLeads] = useState<Lead[]>(initial)
+  const [deletedLeads, setDeletedLeads] = useState<Lead[]>(initialDeletedLeads)
+  const [leadToDelete, setLeadToDelete] = useState<Lead | null>(null)
+  const [view, setView] = useState<'funil' | 'listagem' | 'mapa' | 'lixo'>('funil')
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<'recent' | 'value_desc' | 'name'>('recent')
   const [showForm, setShowForm] = useState(false)
@@ -232,6 +247,21 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
         return a.clientName.localeCompare(b.clientName)
       }
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    })
+
+  const filteredDeleted = deletedLeads
+    .filter(
+      (l) =>
+        l.clientName.toLowerCase().includes(search.toLowerCase()) ||
+        l.address.toLowerCase().includes(search.toLowerCase()) ||
+        l.phone.includes(search) ||
+        (l.source || '').toLowerCase().includes(search.toLowerCase()) ||
+        (l.deleteReason || '').toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => {
+      const dateA = a.deletedAt ? new Date(a.deletedAt).getTime() : 0
+      const dateB = b.deletedAt ? new Date(b.deletedAt).getTime() : 0
+      return dateB - dateA
     })
 
   const totalPipelineValue = filtered.reduce((acc, l) => acc + (l.estimatedValue || 0), 0)
@@ -390,19 +420,61 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
     })
   }
 
-  async function handleDelete(id: string, e: React.MouseEvent) {
+  function handleOpenDelete(lead: Lead, e: React.MouseEvent) {
     e.stopPropagation()
-    if (!confirm('Eliminar esta lead permanentemente?')) return
+    setLeadToDelete(lead)
+  }
+
+  async function handleConfirmDelete(reason: string) {
+    if (!leadToDelete) return
     startTransition(async () => {
       try {
-        await deleteLead(id)
-        setLeads((prev) => prev.filter((l) => l.id !== id))
-        if (activeNotesLead?.id === id) {
+        await deleteLead(leadToDelete.id, reason)
+        const trashedItem: Lead = {
+          ...leadToDelete,
+          deletedAt: new Date(),
+          deleteReason: reason,
+        }
+        setLeads((prev) => prev.filter((l) => l.id !== leadToDelete.id))
+        setDeletedLeads((prev) => [trashedItem, ...prev])
+        if (activeNotesLead?.id === leadToDelete.id) {
           setActiveNotesLead(null)
         }
+        setLeadToDelete(null)
       } catch (err: any) {
-        console.error('Error deleting lead:', err)
-        alert(err?.message || 'Erro ao eliminar lead')
+        console.error('Error moving lead to trash:', err)
+        alert(err?.message || 'Erro ao mover lead para o lixo')
+      }
+    })
+  }
+
+  async function handleRestoreLead(leadId: string, e?: React.MouseEvent) {
+    e?.stopPropagation()
+    startTransition(async () => {
+      try {
+        await restoreLead(leadId)
+        const restored = deletedLeads.find((l) => l.id === leadId)
+        setDeletedLeads((prev) => prev.filter((l) => l.id !== leadId))
+        if (restored) {
+          setLeads((prev) => [{ ...restored, deletedAt: null, deleteReason: null }, ...prev])
+        }
+      } catch (err: any) {
+        console.error('Error restoring lead:', err)
+        alert(err?.message || 'Erro ao restaurar lead')
+      }
+    })
+  }
+
+  async function handlePermanentDelete(leadId: string, e?: React.MouseEvent) {
+    e?.stopPropagation()
+    if (!confirm('Eliminar esta lead definitivamente? Esta ação não pode ser desfeita.')) return
+    startTransition(async () => {
+      try {
+        await permanentDeleteLead(leadId)
+        setDeletedLeads((prev) => prev.filter((l) => l.id !== leadId))
+      } catch (err: any) {
+        console.error('Error permanently deleting lead:', err)
+        alert(err?.message || 'Erro ao eliminar lead permanentemente')
       }
     })
   }
@@ -487,7 +559,15 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
         {/* Right count and sort dropdown */}
         <div className="flex items-center justify-between md:justify-end gap-3 flex-shrink-0 text-xs">
           <span className="text-slate-600 font-semibold whitespace-nowrap">
-            <strong className="text-slate-900 text-sm">{filtered.length}</strong> negócio(s)
+            {view === 'lixo' ? (
+              <>
+                <strong className="text-rose-600 text-sm">{filteredDeleted.length}</strong> lead(s) no lixo
+              </>
+            ) : (
+              <>
+                <strong className="text-slate-900 text-sm">{filtered.length}</strong> negócio(s)
+              </>
+            )}
           </span>
 
           <div className="flex items-center gap-1.5">
@@ -508,48 +588,75 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-white border border-slate-200 shadow-sm p-3.5 sm:p-4 rounded-[4px]">
         {/* Action Button & Large Metric */}
         <div className="flex items-center gap-4 sm:gap-6 flex-wrap">
-          <button
-            onClick={() => setShowForm(true)}
-            className="px-4 py-2.5 rounded-[4px] text-xs font-bold uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-700 flex items-center gap-2 transition-all shadow-md shadow-blue-600/20 active:scale-98"
-          >
-            <Plus className="w-4 h-4" />
-            Adicionar Negócio
-          </button>
-
-          <div className="flex items-baseline gap-3">
-            <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              {leads.length}
-            </span>
-            <div className="flex flex-col">
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider leading-none">
-                NEGÓCIOS
-              </span>
-              <span className="text-sm sm:text-base font-bold text-emerald-600 tracking-tight leading-tight mt-0.5">
-                {formatCurrency(totalPipelineValue)}
-              </span>
+          {view === 'lixo' ? (
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 flex-shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div className="flex items-baseline gap-3">
+                <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                  {deletedLeads.length}
+                </span>
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold text-rose-600 uppercase tracking-wider leading-none">
+                    LEADS ARQUIVADAS NO LIXO
+                  </span>
+                  <span className="text-xs text-slate-500 mt-0.5">
+                    Histórico com as respetivas justificações
+                  </span>
+                </div>
+              </div>
             </div>
-          </div>
+          ) : (
+            <>
+              <button
+                onClick={() => setShowForm(true)}
+                className="px-4 py-2.5 rounded-[4px] text-xs font-bold uppercase tracking-wider text-white bg-blue-600 hover:bg-blue-700 flex items-center gap-2 transition-all shadow-md shadow-blue-600/20 active:scale-98"
+              >
+                <Plus className="w-4 h-4" />
+                Adicionar Negócio
+              </button>
+
+              <div className="flex items-baseline gap-3">
+                <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+                  {leads.length}
+                </span>
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider leading-none">
+                    NEGÓCIOS
+                  </span>
+                  <span className="text-sm sm:text-base font-bold text-emerald-600 tracking-tight leading-tight mt-0.5">
+                    {formatCurrency(totalPipelineValue)}
+                  </span>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Utilities: Import, Export, Views */}
         <div className="flex items-center gap-2 flex-wrap">
-          <button
-            onClick={() => alert('Para importar contactos em lote, utilize a importação via ficheiro CSV/Excel.')}
-            className="px-3 py-2 rounded-[4px] text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 flex items-center gap-1.5 transition-colors"
-          >
-            <Upload className="w-3.5 h-3.5 text-blue-600" />
-            <span>IMPORTAR</span>
-          </button>
+          {view !== 'lixo' && (
+            <>
+              <button
+                onClick={() => alert('Para importar contactos em lote, utilize a importação via ficheiro CSV/Excel.')}
+                className="px-3 py-2 rounded-[4px] text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 flex items-center gap-1.5 transition-colors"
+              >
+                <Upload className="w-3.5 h-3.5 text-blue-600" />
+                <span>IMPORTAR</span>
+              </button>
 
-          <button
-            onClick={handleExport}
-            className="px-3 py-2 rounded-[4px] text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 flex items-center gap-1.5 transition-colors"
-          >
-            <Download className="w-3.5 h-3.5 text-blue-600" />
-            <span>EXPORTAR</span>
-          </button>
+              <button
+                onClick={handleExport}
+                className="px-3 py-2 rounded-[4px] text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-50 hover:bg-slate-100 border border-slate-200 flex items-center gap-1.5 transition-colors"
+              >
+                <Download className="w-3.5 h-3.5 text-blue-600" />
+                <span>EXPORTAR</span>
+              </button>
+            </>
+          )}
 
-          {/* View switcher: LISTAGEM | FUNIL | MAPA */}
+          {/* View switcher: LISTAGEM | FUNIL | MAPA | LIXO */}
           <div className="inline-flex border border-slate-200 rounded-[4px] overflow-hidden bg-slate-100 p-0.5">
             <button
               onClick={() => setView('listagem')}
@@ -586,6 +693,29 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
             >
               <MapPin className="w-3.5 h-3.5" />
               <span>MAPA</span>
+            </button>
+            <button
+              onClick={() => setView('lixo')}
+              className={cn(
+                'px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5 rounded-[2px] transition-colors',
+                view === 'lixo'
+                  ? 'bg-rose-600 text-white shadow-sm font-bold'
+                  : 'text-slate-600 hover:text-rose-700 hover:bg-rose-50/50'
+              )}
+              title="Aba Lixo (Leads Eliminadas com Justificações)"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>LIXO</span>
+              {deletedLeads.length > 0 && (
+                <span
+                  className={cn(
+                    'px-1.5 py-0.2 rounded-full text-[10px] font-bold ml-0.5',
+                    view === 'lixo' ? 'bg-white text-rose-700' : 'bg-rose-100 text-rose-700'
+                  )}
+                >
+                  {deletedLeads.length}
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -754,9 +884,9 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
                             </button>
 
                             <button
-                              onClick={(e) => handleDelete(lead.id, e)}
+                              onClick={(e) => handleOpenDelete(lead, e)}
                               className="text-slate-400 hover:text-red-600 p-1 rounded hover:bg-red-50 transition-colors"
-                              title="Eliminar Lead"
+                              title="Mover Lead para o Lixo"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -862,9 +992,9 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
                             <Pencil className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={(e) => handleDelete(lead.id, e)}
+                            onClick={(e) => handleOpenDelete(lead, e)}
                             className="text-slate-400 hover:text-red-600 p-1"
-                            title="Eliminar Lead"
+                            title="Mover Lead para o Lixo"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
@@ -875,7 +1005,7 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
                 })}
                 {filtered.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="text-center py-12 text-slate-400">
+                    <td colSpan={9} className="text-center py-12 text-slate-400">
                       Nenhum negócio encontrado.
                     </td>
                   </tr>
@@ -908,21 +1038,192 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
         </div>
       )}
 
+      {/* ── LIXO VIEW (Lista de Leads Eliminadas com Justificações Bem Assinaladas) ─ */}
+      {view === 'lixo' && (
+        <div className="space-y-3">
+          <div className="p-3.5 bg-rose-50/70 border border-rose-200 rounded-[4px] flex items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-full bg-rose-100 border border-rose-300 text-rose-700 flex items-center justify-center flex-shrink-0">
+                <Trash2 className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="font-bold text-rose-950">
+                  Lixeira de Leads Eliminadas ({filteredDeleted.length})
+                </p>
+                <p className="text-[11px] text-rose-700">
+                  Todas as leads que foram enviadas para o lixo estão aqui arquivadas com a respetiva justificação. Não contam para o funil ativo nem métricas de faturação. Pode restaurar uma lead para o funil a qualquer momento.
+                </p>
+              </div>
+            </div>
+            {deletedLeads.length > 0 && (
+              <span className="text-[11px] font-semibold text-rose-800 bg-rose-100 px-2 py-0.5 rounded border border-rose-200 whitespace-nowrap">
+                {deletedLeads.length} lead(s) guardadas
+              </span>
+            )}
+          </div>
+
+          <div className="border border-slate-200 rounded-[4px] overflow-hidden bg-white shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200 uppercase tracking-wider text-[11px]">
+                  <tr>
+                    <th className="px-4 py-3 min-w-[200px]">Cliente / Negócio</th>
+                    <th className="px-4 py-3 min-w-[130px]">Data Eliminação</th>
+                    <th className="px-4 py-3 min-w-[110px]">Fase Anterior</th>
+                    <th className="px-4 py-3 min-w-[110px]">Valor Estimado</th>
+                    <th className="px-4 py-3 min-w-[320px] bg-amber-50/60 text-amber-950 border-x border-amber-200/50">
+                      <div className="flex items-center gap-1.5 font-bold">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Razão / Justificação da Eliminação</span>
+                      </div>
+                    </th>
+                    <th className="px-4 py-3 text-right min-w-[140px]">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredDeleted.map((lead) => {
+                    const deletionFormatted = lead.deletedAt
+                      ? new Date(lead.deletedAt).toLocaleString('pt-PT', {
+                          day: '2-digit',
+                          month: '2-digit',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })
+                      : '—'
+
+                    return (
+                      <tr
+                        key={lead.id}
+                        className="hover:bg-rose-50/20 transition-colors"
+                      >
+                        {/* Cliente / Contacto */}
+                        <td className="px-4 py-3">
+                          <Link
+                            href={`/leads/${lead.id}`}
+                            className="font-bold text-slate-900 hover:text-blue-600 hover:underline block"
+                          >
+                            {lead.clientName}
+                          </Link>
+                          <div className="flex items-center gap-2 text-slate-600 mt-0.5 text-[11px]">
+                            <span className="flex items-center gap-1">
+                              <Phone className="w-3 h-3 text-slate-400" />
+                              {lead.phone}
+                            </span>
+                            {lead.source && (
+                              <span className="text-slate-400">• {lead.source}</span>
+                            )}
+                          </div>
+                          {lead.address && (
+                            <div className="text-[11px] text-slate-500 truncate max-w-[200px] mt-0.5">
+                              {lead.address}
+                            </div>
+                          )}
+                        </td>
+
+                        {/* Data Eliminação */}
+                        <td className="px-4 py-3 text-slate-700 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5 font-medium text-slate-800">
+                            <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                            <span>{deletionFormatted}</span>
+                          </div>
+                          <span className="text-[10px] text-rose-600 font-semibold uppercase tracking-wider block mt-0.5">
+                            Arquivada no Lixo
+                          </span>
+                        </td>
+
+                        {/* Fase Anterior */}
+                        <td className="px-4 py-3">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-[3px] text-[10.5px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                            {getStatusLabel(lead.status)}
+                          </span>
+                        </td>
+
+                        {/* Valor Estimado */}
+                        <td className="px-4 py-3 font-bold text-slate-800 whitespace-nowrap">
+                          {lead.estimatedValue ? formatCurrency(lead.estimatedValue) : '—'}
+                        </td>
+
+                        {/* JUSTIFICAÇÃO / RAZÃO (DESTAQUE MÁXIMO DIRETO NA LINHA) */}
+                        <td className="px-4 py-3 bg-amber-50/25 border-x border-amber-200/50">
+                          <div className="p-2.5 rounded-[4px] border border-amber-300/80 bg-amber-50/90 text-amber-950 shadow-2xs">
+                            <div className="flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-amber-800 mb-1">
+                              <AlertTriangle className="w-3 h-3 text-amber-600 flex-shrink-0" />
+                              <span>Motivo da Eliminação:</span>
+                            </div>
+                            <p className="text-xs text-slate-900 font-semibold leading-relaxed whitespace-pre-wrap break-words">
+                              &quot;{lead.deleteReason || 'Sem justificação especificada'}&quot;
+                            </p>
+                          </div>
+                        </td>
+
+                        {/* Ações */}
+                        <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={(e) => handleRestoreLead(lead.id, e)}
+                              disabled={isPending}
+                              title="Restaurar esta lead para o funil ativo"
+                              className="px-2.5 py-1 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-[3px] flex items-center gap-1 transition-all active:scale-95 disabled:opacity-50"
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              <span>Restaurar</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => handlePermanentDelete(lead.id, e)}
+                              disabled={isPending}
+                              title="Eliminar permanentemente da base de dados"
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-[3px] transition-colors disabled:opacity-50"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+
+                  {filteredDeleted.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="text-center py-16 text-slate-400">
+                        <Trash2 className="w-8 h-8 text-slate-300 mx-auto mb-2 opacity-60" />
+                        <p className="text-xs font-semibold text-slate-600">
+                          {search
+                            ? 'Nenhuma lead eliminada encontrada com esse termo de pesquisa.'
+                            : 'A lixeira está vazia.'}
+                        </p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          As leads que eliminar no funil ou na listagem ficarão guardadas aqui.
+                        </p>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── BOTTOM LEGEND (Image 2 style) ─────────────────────────────── */}
-      <div className="flex items-center gap-5 pt-3 border-t border-slate-200 text-xs text-slate-600 flex-wrap">
-        <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-emerald-500" />
-          <span>Com tarefa agendada</span>
+      {view !== 'lixo' && (
+        <div className="flex items-center gap-5 pt-3 border-t border-slate-200 text-xs text-slate-600 flex-wrap">
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-emerald-500" />
+            <span>Com tarefa agendada</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-amber-500" />
+            <span>Tarefa atrasada</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-red-500" />
+            <span>Sem tarefa agendada</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-amber-500" />
-          <span>Tarefa atrasada</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-red-500" />
-          <span>Sem tarefa agendada</span>
-        </div>
-      </div>
+      )}
 
       {/* ── CREATE LEAD MODAL (Uses Portal Modal) ─────────────────────── */}
       <Modal
@@ -1364,6 +1665,16 @@ export function LeadsClient({ leads: initial }: { leads: Lead[] }) {
           </div>
         </form>
       </Modal>
+
+      {/* ── DELETE / TRASH CONFIRMATION MODAL WITH REASON ───────────── */}
+      <DeleteLeadModal
+        isOpen={!!leadToDelete}
+        onClose={() => setLeadToDelete(null)}
+        onConfirm={handleConfirmDelete}
+        clientName={leadToDelete?.clientName || ''}
+        isPending={isPending}
+      />
     </div>
   )
 }
+

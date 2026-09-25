@@ -21,6 +21,7 @@ export default async function CalendarioPage() {
       orderBy: { dueDate: 'asc' },
     }),
     prisma.lead.findMany({
+      where: { deletedAt: null },
       select: { id: true, clientName: true, status: true, createdAt: true },
       orderBy: { createdAt: 'desc' },
     }),
