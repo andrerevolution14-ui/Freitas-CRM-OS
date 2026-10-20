@@ -1244,19 +1244,39 @@ export function LeadsClient({
             { label: 'Nome do Cliente / Oportunidade *', key: 'clientName', type: 'text', placeholder: 'Ex: Sofia Ribeiro', required: true },
             { label: 'Telefone de Contacto *', key: 'phone', type: 'tel', placeholder: '912 345 678', required: true },
             { label: 'Morada da Obra *', key: 'address', type: 'text', placeholder: 'Rua Principal, 45, Porto', required: true },
-            { label: 'A Realizar', key: 'aRealizar', type: 'text', placeholder: 'Ex: Remodelação de cozinha e casa de banho', required: false },
+            { label: 'A Realizar', key: 'aRealizar', type: 'textarea', placeholder: 'Ex: Remodelação de cozinha e casa de banho', required: false },
             { label: 'Valor Estimado do Negócio (€)', key: 'estimatedValue', type: 'number', placeholder: '45000', required: false },
           ].map((field) => (
             <div key={field.key}>
               <label className="block text-xs font-semibold text-slate-700 mb-1">{field.label}</label>
-              <input
-                type={field.type}
-                required={field.required}
-                placeholder={field.placeholder}
-                value={(form as Record<string, string>)[field.key]}
-                onChange={(e) => setForm((p) => ({ ...p, [field.key]: e.target.value }))}
-                className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-white border border-slate-300 focus:outline-none focus:border-blue-600"
-              />
+              {field.type === 'textarea' ? (
+                <textarea
+                  rows={2}
+                  placeholder={field.placeholder}
+                  value={(form as Record<string, string>)[field.key] || ''}
+                  onChange={(e) => {
+                    const target = e.target
+                    setForm((p) => ({ ...p, [field.key]: target.value }))
+                    target.style.height = 'auto'
+                    target.style.height = `${Math.max(60, target.scrollHeight)}px`
+                  }}
+                  onFocus={(e) => {
+                    const target = e.target
+                    target.style.height = 'auto'
+                    target.style.height = `${Math.max(60, target.scrollHeight)}px`
+                  }}
+                  className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-white border border-slate-300 focus:outline-none focus:border-blue-600 resize-none min-h-[60px] leading-snug overflow-hidden"
+                />
+              ) : (
+                <input
+                  type={field.type}
+                  required={field.required}
+                  placeholder={field.placeholder}
+                  value={(form as Record<string, string>)[field.key]}
+                  onChange={(e) => setForm((p) => ({ ...p, [field.key]: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-white border border-slate-300 focus:outline-none focus:border-blue-600"
+                />
+              )}
             </div>
           ))}
           <div>
@@ -1566,19 +1586,39 @@ export function LeadsClient({
             { label: 'Nome do Cliente / Oportunidade *', key: 'clientName', type: 'text', placeholder: 'Ex: Sofia Ribeiro', required: true },
             { label: 'Telefone de Contacto *', key: 'phone', type: 'tel', placeholder: '912 345 678', required: true },
             { label: 'Morada da Obra *', key: 'address', type: 'text', placeholder: 'Rua Principal, 45, Porto', required: true },
-            { label: 'A Realizar', key: 'aRealizar', type: 'text', placeholder: 'Ex: Remodelação de cozinha e casa de banho', required: false },
+            { label: 'A Realizar', key: 'aRealizar', type: 'textarea', placeholder: 'Ex: Remodelação de cozinha e casa de banho', required: false },
             { label: 'Valor Estimado do Negócio (€)', key: 'estimatedValue', type: 'number', placeholder: '45000', required: false },
           ].map((field) => (
             <div key={field.key}>
               <label className="block text-xs font-semibold text-slate-700 mb-1">{field.label}</label>
-              <input
-                type={field.type}
-                required={field.required}
-                placeholder={field.placeholder}
-                value={(editForm as Record<string, string>)[field.key]}
-                onChange={(e) => setEditForm((p) => ({ ...p, [field.key]: e.target.value }))}
-                className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-white border border-slate-300 focus:outline-none focus:border-blue-600"
-              />
+              {field.type === 'textarea' ? (
+                <textarea
+                  rows={2}
+                  placeholder={field.placeholder}
+                  value={(editForm as Record<string, string>)[field.key] || ''}
+                  onChange={(e) => {
+                    const target = e.target
+                    setEditForm((p) => ({ ...p, [field.key]: target.value }))
+                    target.style.height = 'auto'
+                    target.style.height = `${Math.max(60, target.scrollHeight)}px`
+                  }}
+                  onFocus={(e) => {
+                    const target = e.target
+                    target.style.height = 'auto'
+                    target.style.height = `${Math.max(60, target.scrollHeight)}px`
+                  }}
+                  className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-white border border-slate-300 focus:outline-none focus:border-blue-600 resize-none min-h-[60px] leading-snug overflow-hidden"
+                />
+              ) : (
+                <input
+                  type={field.type}
+                  required={field.required}
+                  placeholder={field.placeholder}
+                  value={(editForm as Record<string, string>)[field.key]}
+                  onChange={(e) => setEditForm((p) => ({ ...p, [field.key]: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-[4px] text-xs sm:text-sm text-slate-900 placeholder-slate-400 bg-white border border-slate-300 focus:outline-none focus:border-blue-600"
+                />
+              )}
             </div>
           ))}
 
