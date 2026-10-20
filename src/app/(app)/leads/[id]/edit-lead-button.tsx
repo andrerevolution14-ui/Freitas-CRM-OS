@@ -23,6 +23,7 @@ interface EditLeadButtonProps {
     phone: string
     email?: string | null
     address: string
+    aRealizar?: string | null
     source?: string | null
     estimatedValue?: number | null
     provisionalProfit?: number | null
@@ -39,11 +40,10 @@ export function EditLeadButton({ lead }: EditLeadButtonProps) {
   const [form, setForm] = useState({
     clientName: lead.clientName,
     phone: lead.phone,
-    email: lead.email || '',
     address: lead.address,
+    aRealizar: lead.aRealizar || '',
     source: lead.source || 'Meta Ads',
     estimatedValue: lead.estimatedValue ? String(lead.estimatedValue) : '',
-    provisionalProfit: lead.provisionalProfit ? String(lead.provisionalProfit) : '',
     urgency: lead.urgency || 'Sem pressa',
     status: lead.status,
   })
@@ -52,11 +52,10 @@ export function EditLeadButton({ lead }: EditLeadButtonProps) {
     setForm({
       clientName: lead.clientName,
       phone: lead.phone,
-      email: lead.email || '',
       address: lead.address,
+      aRealizar: lead.aRealizar || '',
       source: lead.source || 'Meta Ads',
       estimatedValue: lead.estimatedValue ? String(lead.estimatedValue) : '',
-      provisionalProfit: lead.provisionalProfit ? String(lead.provisionalProfit) : '',
       urgency: lead.urgency || 'Sem pressa',
       status: lead.status,
     })
@@ -75,11 +74,10 @@ export function EditLeadButton({ lead }: EditLeadButtonProps) {
         await updateLead(lead.id, {
           clientName: form.clientName.trim(),
           phone: form.phone.trim(),
-          email: form.email.trim() || null,
           address: form.address.trim(),
+          aRealizar: form.aRealizar.trim() || null,
           source: form.source,
           estimatedValue: form.estimatedValue ? parseFloat(form.estimatedValue) : null,
-          provisionalProfit: form.provisionalProfit ? parseFloat(form.provisionalProfit) : null,
           urgency: form.urgency,
           status: form.status,
         })
@@ -114,10 +112,9 @@ export function EditLeadButton({ lead }: EditLeadButtonProps) {
           {[
             { label: 'Nome do Cliente / Oportunidade *', key: 'clientName', type: 'text', placeholder: 'Ex: Sofia Ribeiro', required: true },
             { label: 'Telefone de Contacto *', key: 'phone', type: 'tel', placeholder: '912 345 678', required: true },
-            { label: 'Email', key: 'email', type: 'email', placeholder: 'sofia@exemplo.pt', required: false },
             { label: 'Morada da Obra *', key: 'address', type: 'text', placeholder: 'Rua Principal, 45, Porto', required: true },
+            { label: 'A Realizar', key: 'aRealizar', type: 'text', placeholder: 'Ex: Remodelação de cozinha e casa de banho', required: false },
             { label: 'Valor Estimado do Negócio (€)', key: 'estimatedValue', type: 'number', placeholder: '45000', required: false },
-            { label: 'Lucro Provisório (€) (Previsão Partilha)', key: 'provisionalProfit', type: 'number', placeholder: 'Ex: 4000', required: false },
           ].map((field) => (
             <div key={field.key}>
               <label className="block text-xs font-semibold text-slate-700 mb-1">{field.label}</label>

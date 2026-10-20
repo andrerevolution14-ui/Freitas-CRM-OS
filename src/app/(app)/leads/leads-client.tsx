@@ -92,6 +92,7 @@ type Lead = {
   phone: string
   email: string | null
   address: string
+  aRealizar?: string | null
   source: string
   status: LeadStatus
   urgency?: string | null
@@ -134,11 +135,10 @@ export function LeadsClient({
   const [form, setForm] = useState({
     clientName: '',
     phone: '',
-    email: '',
     address: '',
+    aRealizar: '',
     source: 'Meta Ads',
     estimatedValue: '',
-    provisionalProfit: '',
     urgency: 'Sem pressa',
   })
   const [convertForm, setConvertForm] = useState({
@@ -161,11 +161,10 @@ export function LeadsClient({
   const [editForm, setEditForm] = useState({
     clientName: '',
     phone: '',
-    email: '',
     address: '',
+    aRealizar: '',
     source: 'Meta Ads',
     estimatedValue: '',
-    provisionalProfit: '',
     urgency: 'Sem pressa',
     status: 'NOVA_LEAD',
   })
@@ -176,11 +175,10 @@ export function LeadsClient({
     setEditForm({
       clientName: lead.clientName,
       phone: lead.phone,
-      email: lead.email || '',
       address: lead.address,
+      aRealizar: lead.aRealizar || '',
       source: lead.source || 'Meta Ads',
       estimatedValue: lead.estimatedValue ? String(lead.estimatedValue) : '',
-      provisionalProfit: lead.provisionalProfit ? String(lead.provisionalProfit) : '',
       urgency: lead.urgency || 'Sem pressa',
       status: lead.status,
     })
@@ -199,11 +197,10 @@ export function LeadsClient({
         const updated = await updateLead(editingLead.id, {
           clientName: editForm.clientName.trim(),
           phone: editForm.phone.trim(),
-          email: editForm.email.trim() || null,
           address: editForm.address.trim(),
+          aRealizar: editForm.aRealizar.trim() || null,
           source: editForm.source,
           estimatedValue: editForm.estimatedValue ? parseFloat(editForm.estimatedValue) : null,
-          provisionalProfit: editForm.provisionalProfit ? parseFloat(editForm.provisionalProfit) : null,
           urgency: editForm.urgency,
           status: editForm.status,
         })
@@ -236,6 +233,7 @@ export function LeadsClient({
       (l) =>
         l.clientName.toLowerCase().includes(search.toLowerCase()) ||
         l.address.toLowerCase().includes(search.toLowerCase()) ||
+        (l.aRealizar || '').toLowerCase().includes(search.toLowerCase()) ||
         l.phone.includes(search) ||
         (l.source || '').toLowerCase().includes(search.toLowerCase())
     )
@@ -329,11 +327,10 @@ export function LeadsClient({
       const lead = await createLead({
         clientName: form.clientName,
         phone: form.phone,
-        email: form.email || undefined,
         address: form.address,
+        aRealizar: form.aRealizar.trim() || undefined,
         source: form.source,
         estimatedValue: form.estimatedValue ? parseFloat(form.estimatedValue) : undefined,
-        provisionalProfit: form.provisionalProfit ? parseFloat(form.provisionalProfit) : undefined,
         urgency: form.urgency,
       })
       setLeads((prev) => [
@@ -343,11 +340,10 @@ export function LeadsClient({
       setForm({
         clientName: '',
         phone: '',
-        email: '',
         address: '',
+        aRealizar: '',
         source: 'Meta Ads',
         estimatedValue: '',
-        provisionalProfit: '',
         urgency: 'Sem pressa',
       })
       setShowForm(false)
@@ -797,6 +793,12 @@ export function LeadsClient({
                             <p className="text-[11px] text-slate-500 truncate mt-0.5">
                               {lead.address || 'Sem morada'}
                             </p>
+                            {lead.aRealizar && (
+                              <p className="text-[11px] text-blue-700 font-medium truncate mt-1 bg-blue-50/70 px-1.5 py-0.5 rounded-[3px] border border-blue-100">
+                                <span className="text-slate-500 font-semibold mr-1">A Realizar:</span>
+                                {lead.aRealizar}
+                              </p>
+                            )}
                           </div>
                         </div>
 
@@ -918,6 +920,7 @@ export function LeadsClient({
                   <th className="px-4 py-3">Cliente / Negócio</th>
                   <th className="px-4 py-3">Telefone</th>
                   <th className="px-4 py-3">Morada</th>
+                  <th className="px-4 py-3">A Realizar</th>
                   <th className="px-4 py-3">Urgência</th>
                   <th className="px-4 py-3">Origem</th>
                   <th className="px-4 py-3">Valor Estimado</th>
@@ -941,6 +944,9 @@ export function LeadsClient({
                       </td>
                       <td className="px-4 py-3 text-slate-700">{lead.phone}</td>
                       <td className="px-4 py-3 text-slate-500 truncate max-w-[200px]">{lead.address}</td>
+                      <td className="px-4 py-3 text-slate-600 truncate max-w-[180px]" title={lead.aRealizar || ''}>
+                        {lead.aRealizar || '—'}
+                      </td>
                       <td className="px-4 py-3">
                         <span className={cn('inline-flex items-center px-2 py-0.5 rounded-[3px] text-[10.5px] font-bold border', urgBadge.bg, urgBadge.color, urgBadge.border)}>
                           {urgBadge.label}
@@ -1237,10 +1243,9 @@ export function LeadsClient({
           {[
             { label: 'Nome do Cliente / Oportunidade *', key: 'clientName', type: 'text', placeholder: 'Ex: Sofia Ribeiro', required: true },
             { label: 'Telefone de Contacto *', key: 'phone', type: 'tel', placeholder: '912 345 678', required: true },
-            { label: 'Email', key: 'email', type: 'email', placeholder: 'sofia@exemplo.pt', required: false },
             { label: 'Morada da Obra *', key: 'address', type: 'text', placeholder: 'Rua Principal, 45, Porto', required: true },
+            { label: 'A Realizar', key: 'aRealizar', type: 'text', placeholder: 'Ex: Remodelação de cozinha e casa de banho', required: false },
             { label: 'Valor Estimado do Negócio (€)', key: 'estimatedValue', type: 'number', placeholder: '45000', required: false },
-            { label: 'Lucro Provisório (€) (Previsão Partilha)', key: 'provisionalProfit', type: 'number', placeholder: 'Ex: 4000', required: false },
           ].map((field) => (
             <div key={field.key}>
               <label className="block text-xs font-semibold text-slate-700 mb-1">{field.label}</label>
@@ -1560,10 +1565,9 @@ export function LeadsClient({
           {[
             { label: 'Nome do Cliente / Oportunidade *', key: 'clientName', type: 'text', placeholder: 'Ex: Sofia Ribeiro', required: true },
             { label: 'Telefone de Contacto *', key: 'phone', type: 'tel', placeholder: '912 345 678', required: true },
-            { label: 'Email', key: 'email', type: 'email', placeholder: 'sofia@exemplo.pt', required: false },
             { label: 'Morada da Obra *', key: 'address', type: 'text', placeholder: 'Rua Principal, 45, Porto', required: true },
+            { label: 'A Realizar', key: 'aRealizar', type: 'text', placeholder: 'Ex: Remodelação de cozinha e casa de banho', required: false },
             { label: 'Valor Estimado do Negócio (€)', key: 'estimatedValue', type: 'number', placeholder: '45000', required: false },
-            { label: 'Lucro Provisório (€) (Previsão Partilha)', key: 'provisionalProfit', type: 'number', placeholder: 'Ex: 4000', required: false },
           ].map((field) => (
             <div key={field.key}>
               <label className="block text-xs font-semibold text-slate-700 mb-1">{field.label}</label>

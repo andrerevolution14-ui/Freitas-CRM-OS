@@ -61,6 +61,7 @@ export async function createLead(data: {
   phone: string
   email?: string
   address: string
+  aRealizar?: string
   source?: string
   estimatedValue?: number
   provisionalProfit?: number
@@ -96,6 +97,7 @@ export async function updateLead(
     phone: string
     email: string | null
     address: string
+    aRealizar: string | null
     source: string
     estimatedValue: number | null
     provisionalProfit: number | null
@@ -134,6 +136,9 @@ export async function updateLead(
     }
     if ('email' in updatePayload && !updatePayload.email) {
       updatePayload.email = null
+    }
+    if ('aRealizar' in updatePayload && !updatePayload.aRealizar) {
+      updatePayload.aRealizar = null
     }
 
     if (('andrePaid' in updatePayload || 'jorgePaid' in updatePayload) && !('profitShareSettled' in updatePayload)) {

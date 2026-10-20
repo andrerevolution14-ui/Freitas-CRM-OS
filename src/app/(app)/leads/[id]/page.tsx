@@ -1,7 +1,7 @@
 import { getLead } from '@/server/actions/leads'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Phone, Mail, MapPin, Euro, Calendar, AlertCircle, TrendingUp } from 'lucide-react'
+import { ArrowLeft, Phone, Mail, MapPin, Euro, Calendar, AlertCircle, TrendingUp, Hammer } from 'lucide-react'
 import { formatCurrency, formatDate, getStatusLabel, getUrgencyBadge, cn } from '@/lib/utils'
 import type { LeadStatus } from '@prisma/client'
 import { DeleteLeadButton } from './delete-lead-button'
@@ -110,9 +110,18 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
               </div>
             )}
             <div className="flex items-start gap-3 text-sm">
-              <MapPin className="w-4 h-4 text-slate-400 mt-0.5" />
+              <MapPin className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
               <span className="text-slate-800">{lead.address}</span>
             </div>
+            {lead.aRealizar && (
+              <div className="flex items-start gap-3 text-sm">
+                <Hammer className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <span className="text-slate-500 text-xs font-semibold block">A Realizar:</span>
+                  <span className="text-slate-800 font-medium">{lead.aRealizar}</span>
+                </div>
+              </div>
+            )}
             <div className="flex items-center gap-3 text-sm">
               <AlertCircle className="w-4 h-4 text-slate-400" />
               <span className="text-slate-600 text-xs font-medium">
